@@ -1,3 +1,6 @@
+<img src="https://iili.io/FfYJOas.jpg" alt="Demo IMG" style="max-width: 100%; height: auto;" />
+
+# 🚗 Hệ thống Nhận diện Biển số xe Việt Nam (Vietnamese License Plate Recognition System)
 # API Nhận diện Biển số xe Việt Nam (Backend) 🚘📸
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)](https://www.python.org/)
