@@ -1,0 +1,36 @@
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Runtime database files
+*.db-journal
+*.db-shm
+*.db-wal
+*.db.bak_*
+*.db-journal.bak_*
+tmp_write_test.db
+tmp_write_test.db-journal
+
+# Local environment/editor noise
+.venv/
+venv/
+.env
+.vscode/
+.ultralytics/
+
+# Generated reports/large backups
+backup_project.zip
+
+# LaTeX files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# DB file
+*.db
