@@ -55,9 +55,13 @@ class DieuKhienHeThong:
         self.cho_dong_sau_khi_quang_ms = 2000
         self.cam_bien_quang_tu = {"vao": None, "ra": None}
         self.cam_bien_da_gap_vat_can = {"vao": False, "ra": False}
+        self.cam_bien_edge_ts = {"vao": 0.0, "ra": 0.0}  # debounce: thoi diem canh len gan nhat
+        self.cam_bien_debounce_ms = 800  # bo qua canh len trong khoang nay (ms)
         self.bien_so_cho_ra = None
         self.retry_ai_after_ms = 1500
         self.retry_ai_dang_cho = {"vao": False, "ra": False}
+        self.retry_ai_count = {"vao": 0, "ra": 0}
+        self.retry_ai_max = 3  # toi da 3 lan thu lai khi bi tu choi
         self.bien_so_cuoi = ""
 
         self.q_ai = queue.Queue(maxsize=1)
@@ -443,14 +447,20 @@ class DieuKhienHeThong:
                 self.auto_close(cong, schedule=schedule)
         if self.che_do != "tu_dong":
             return
-        if vao and not old_vao:
-            self._yeu_cau_chup("vao", schedule=schedule)
-        if ra and not old_ra:
-            self._yeu_cau_chup("ra", schedule=schedule)
-        if old_vao and not vao and self.barie["vao"] == "mo":
-            self.auto_close("vao", schedule=schedule)
-        if old_ra and not ra and self.barie["ra"] == "mo":
-            self.auto_close("ra", schedule=schedule)
+        now_ms = time.monotonic() * 1000
+        for cong, sensor_key, old_val, new_val in (
+            ("vao", "xe_vao", old_vao, vao),
+            ("ra", "xe_ra", old_ra, ra),
+        ):
+            # Chi chup khi: canh len (0->1) + barie dang dong + debounce da qua
+            if new_val and not old_val and self.barie[cong] == "dong":
+                last_edge = self.cam_bien_edge_ts.get(cong, 0.0)
+                if now_ms - last_edge >= self.cam_bien_debounce_ms:
+                    self.cam_bien_edge_ts[cong] = now_ms
+                    self._yeu_cau_chup(cong, schedule=schedule)
+            # Tu dong dong khi xe roi khoi cam bien
+            if old_val and not new_val and self.barie[cong] == "mo":
+                self.auto_close(cong, schedule=schedule)
 
     def _cam_reader(self, cong, cam):
         import time
@@ -498,7 +508,7 @@ class DieuKhienHeThong:
             self.bien_so_cuoi = ""
             self.on_plate_result(cong, None, anh_bs)
             self.log("Khong doc duoc bien so")
-            self._schedule_retry_ai(cong, schedule)
+            self._retry_or_give_up(cong, schedule)
             self.notify()
             return
         self.bien_so_cuoi = bs
@@ -509,12 +519,16 @@ class DieuKhienHeThong:
         if cong == "ra":
             if not self.db.co_xe(bs):
                 self.log("Xe khong co trong bai - khong mo cong ra")
+                self._retry_or_give_up(cong, schedule, reason="Bien so khong khop, thu lai")
                 self.notify()
                 return
             if self.che_do != "tu_dong" and not self.on_messagebox("Duyet", f"Cho xe {plate_text} ra?"):
                 self.log(f"Tu choi cho ra: {plate_text}")
+                self.retry_ai_count[cong] = 0  # nguoi dung tu choi = reset retry
                 self.notify()
                 return
+            # Thanh cong - reset retry va mo barrier
+            self.retry_ai_count[cong] = 0
             self.bien_so_cho_ra = bs
             if self.barie["ra"] == "dong":
                 self.barie["ra"] = "mo"
@@ -528,12 +542,22 @@ class DieuKhienHeThong:
             self.notify()
             return
 
-        for check, msg in [(lambda: not self.db.la_hop_le(bs), "Xe khong hop le"),
-                           (lambda: self.db.co_xe(bs), "Xe da co trong bai"),
-                           (lambda: self.db.so_xe() >= self.db.lay_suc_chua(), "Bai xe da day")]:
+        for check, msg, can_retry in [
+            (lambda: not self.db.la_hop_le(bs), "Xe khong hop le", True),
+            (lambda: self.db.co_xe(bs), "Xe da co trong bai", False),
+            (lambda: self.db.so_xe() >= self.db.lay_suc_chua(), "Bai xe da day", False),
+        ]:
             if check():
-                self.log(msg); self.notify(); return
+                self.log(msg)
+                if can_retry:
+                    self._retry_or_give_up(cong, schedule, reason="Bien so khong hop le, thu lai")
+                else:
+                    self.retry_ai_count[cong] = 0
+                self.notify()
+                return
 
+        # Thanh cong - reset retry
+        self.retry_ai_count[cong] = 0
         if self.che_do == "tu_dong":
             self._cho_xe_vao(bs, f"Cho vao: {plate_text}", schedule)
         elif self.on_messagebox("Duyet", f"Cho xe {plate_text} vao?"):
@@ -541,6 +565,18 @@ class DieuKhienHeThong:
         else:
             self.log(f"Tu choi: {plate_text}")
         self.notify()
+
+    def _retry_or_give_up(self, cong, schedule, reason=None):
+        """Thu lai nhan dien neu chua vuot qua so lan toi da, nguoc lai dung."""
+        count = self.retry_ai_count.get(cong, 0) + 1
+        self.retry_ai_count[cong] = count
+        if count <= self.retry_ai_max:
+            if reason:
+                self.log(f"{reason} (lan {count}/{self.retry_ai_max})")
+            self._schedule_retry_ai(cong, schedule)
+        else:
+            self.retry_ai_count[cong] = 0
+            self.log(f"Da thu {self.retry_ai_max} lan - khong nhan dien duoc. Vui long thu cong.")
 
     def _ai_worker(self):
         try:

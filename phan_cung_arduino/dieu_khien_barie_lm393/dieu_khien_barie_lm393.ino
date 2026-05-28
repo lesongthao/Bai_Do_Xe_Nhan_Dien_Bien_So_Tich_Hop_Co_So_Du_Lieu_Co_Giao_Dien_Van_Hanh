@@ -56,9 +56,59 @@ String boDemLenh = "";
 bool docCamBien(int chan) {
   int giaTri = digitalRead(chan);
   if (CAM_BIEN_TAC_DONG_MUC_THAP) return giaTri == LOW;
+  return giaTri == HIGH;
+}
 
-<truncated 1801 bytes>
- guiTrangThaiCamBien(); return; }
+void capNhatCamBien() {
+  xeVao = docCamBien(CHAN_CAM_BIEN_XE_VAO);
+  xeRa = docCamBien(CHAN_CAM_BIEN_XE_RA);
+}
+
+void guiThongTin(const char* noiDung) {
+  Serial.println(noiDung);
+}
+
+void guiThongTin(String noiDung) {
+  Serial.println(noiDung);
+}
+
+void guiTrangThaiCamBien() {
+  Serial.print("CAM_BIEN:xe_vao=");
+  Serial.print(xeVao ? 1 : 0);
+  Serial.print(",xe_ra=");
+  Serial.println(xeRa ? 1 : 0);
+}
+
+void quayServoMuot(Servo &servo, int &gocHienTai, int gocDich) {
+  if (gocHienTai == gocDich) return;
+  int buoc = (gocDich > gocHienTai) ? SERVO_BUOC_DO : -SERVO_BUOC_DO;
+  while (gocHienTai != gocDich) {
+    gocHienTai += buoc;
+    if ((buoc > 0 && gocHienTai > gocDich) || (buoc < 0 && gocHienTai < gocDich)) {
+      gocHienTai = gocDich;
+    }
+    servo.write(gocHienTai);
+    delay(SERVO_TRE_BUOC_MS);
+  }
+}
+
+void datBarieVao(bool mo) {
+  int gocDich = mo ? GOC_MO_VAO : GOC_DONG_VAO;
+  quayServoMuot(servoVao, gocHienTaiVao, gocDich);
+}
+
+void datBarieRa(bool mo) {
+  int gocDich = mo ? GOC_MO_RA : GOC_DONG_RA;
+  quayServoMuot(servoRa, gocHienTaiRa, gocDich);
+}
+
+void xuLyLenh(String lenh) {
+  lenh.trim();
+  if (lenh == "VAO_MO") { datBarieVao(true); guiThongTin("OK:VAO_MO"); return; }
+  if (lenh == "VAO_DONG") { datBarieVao(false); guiThongTin("OK:VAO_DONG"); return; }
+  if (lenh == "RA_MO") { datBarieRa(true); guiThongTin("OK:RA_MO"); return; }
+  if (lenh == "RA_DONG") { datBarieRa(false); guiThongTin("OK:RA_DONG"); return; }
+  if (lenh == "TRANG_THAI") { guiTrangThaiCamBien(); return; }
   if (lenh == "PING") { guiThongTin("PONG:FW_BARIE_SMOOTH_20MS"); return; }
   if (lenh == "SERVO_TEST") {
     datBarieVao(true);
@@ -73,6 +123,7 @@ bool docCamBien(int chan) {
   Serial.print("LOI:LENH_KHONG_HOP_LE:");
   Serial.println(lenh);
 }
+
 
 void docLenhSerial() {
   while (Serial.available() > 0) {
