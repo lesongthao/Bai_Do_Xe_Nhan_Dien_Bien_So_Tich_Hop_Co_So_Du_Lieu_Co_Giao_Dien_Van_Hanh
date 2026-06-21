@@ -11,15 +11,62 @@ __pycache__/
 tmp_write_test.db
 tmp_write_test.db-journal
 
+# Local/raw evaluation datasets
+/du_lieu/
+Vietnamese-license-plate*.yolov8/
+danh_gia/dataset_test/
+danh_gia/labels.txt
+danh_gia/dataset_paddleocr_vn/
+bieu_do_bao_cao/ket_qua_paddleocr_vn*
+bieu_do_bao_cao/confusion_matrix_paddleocr_vn.png
+bieu_do_bao_cao/phan_bo_lop_paddleocr_vn.png
+
 # Local environment/editor noise
 .venv/
 venv/
 .env
+.agents/
 .vscode/
 .ultralytics/
+.jupyter_runtime/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+**/__pycache__/
+~$*.docx
+~$*.doc
+~$*
+
+# Training datasets are large. Keep metadata/docs in Git, keep raw images local.
+dataset_train_yolov8n/train/
+dataset_train_yolov8n/valid/
+dataset_train_yolov8n/test/
+dataset_train_yolov8n/*.zip
+dataset_train_yolov8n/*.cache
+
+# Duplicate training weights; deployed runtime model is mo_hinh/bien_so_yolo.pt
+Kết quả train Yolov8n/**/weights/last.pt
+Kết quả train Yolov8n/**/weights/best.pt
+
+# Tool/editor backup files
+*.bkp
+.$*.drawio.bkp
+*.tmp
+*.temp
 
 # Generated reports/large backups
 backup_project.zip
+kien_thuc_html.zip
+scratch/
+.drawio_cli_profile/
+
+# Generated report exports not used in the current workflow
+tai_lieu/bao_cao_do_an_bai_xe*.tex
+tai_lieu/bao_cao_do_an_bai_xe*.pdf
+tai_lieu/bao_cao_do_an_bai_xe_latex.*
+tai_lieu/latex_header.tex
+tai_lieu/title.tex
+tai_lieu/hinh_bao_cao/*.pdf
+tai_lieu/hinh_bao_cao/mermaid_img/
 
 # LaTeX files
 *.aux
