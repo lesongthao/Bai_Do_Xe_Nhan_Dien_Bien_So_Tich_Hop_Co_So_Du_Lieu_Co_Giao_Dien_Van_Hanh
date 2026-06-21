@@ -5,7 +5,6 @@
 ## Tác giả
 
 - **Sinh viên thực hiện:** Lê Sông Thao
-- **Mã sinh viên:** 0392019545
 - **Lớp:** Kỹ thuật Điện tử - Tin học Công nghiệp 2 - K62 - Trường Đại học Giao thông vận tải
 - **Giảng viên hướng dẫn:** TS. Nguyễn Thúy Bình
 - **Đề tài:** Thiết kế và xây dựng hệ thống quản lý bãi đỗ xe thông minh sử dụng Arduino Uno R3
