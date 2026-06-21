@@ -1,4 +1,4 @@
-# Hệ thống quản lý bãi đỗ xe thông minh ứng dụng xử lý ảnh
+# Đồ Án Tốt Nghiệp: Thiết kế và xây dựng hệ bãi đỗ xe thông minh có chức năng nhận diện biển số, quản lý và lưu trữ cơ sở dữ liệu, có giao diện vận hành.
 
 Đồ án xây dựng mô hình bãi đỗ xe thông minh có khả năng phát hiện xe, nhận diện biển số, kiểm tra dữ liệu xe vào/ra và điều khiển barie bằng Arduino Uno R3.
 
