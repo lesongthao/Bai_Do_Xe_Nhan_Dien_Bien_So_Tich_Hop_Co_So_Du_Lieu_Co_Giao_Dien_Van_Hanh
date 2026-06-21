@@ -26,25 +26,27 @@ except Exception:
 from dieu_khien_he_thong import DieuKhienHeThong
 from nhan_dien_bien_so import dinh_dang_hien_thi
 
-APP_BG = "#f3f6fa"
+APP_BG = "#dbeafe"
 HEADER_BG = "#6fd9ea"
 HEADER_TEXT = "#0f2b4d"
-CARD_BG = "#f9fbfe"
+CARD_BG = "#eaf4ff"
 TEXT = "#1b2a41"
 MUTED = "#6a7890"
-INPUT_BG = "#f8fbff"
-CAM_BG = "#09162a"
-PLATE_BG = "#101c30"
+INPUT_BG = "#f0f8ff"
+CAM_BG = "#ffffff"
+PLATE_BG = "#ffffff"
+ORANGE_BORDER = "#111111"
 BTN_CYAN = "#74d7e4"
 BTN_GREEN = "#89e8ad"
 BTN_RED = "#f29aa2"
+BTN_YELLOW = "#f4c542"
 BTN_PINK = "#f7b1b5"
 BTN_BLUE = "#59c7db"
 BTN_PEACH = "#f2d2b3"
 BTN_MUTED = "#d8e0ea"
 BTN_MUTED_TEXT = "#66748a"
-BTN_MANUAL_ACTIVE = "#f4c542"
-BTN_AUTO_ACTIVE = "#7ee3a3"
+BTN_MANUAL_ACTIVE = BTN_YELLOW
+BTN_AUTO_ACTIVE = BTN_YELLOW
 BTN_GATE_CLOSED = "#f2a0aa"
 BTN_GATE_OPEN = "#83e6a7"
 BTN_DISABLED = "#cbd5e1"
@@ -65,7 +67,7 @@ class GiaoDienBaiXe:
         self.root = tk.Tk()
         current_scaling = float(self.root.tk.call("tk", "scaling"))
         self.root.tk.call("tk", "scaling", current_scaling * 0.9)
-        self.root.title("H\u1ec7 th\u1ed1ng qu\u1ea3n l\u00fd b\u00e3i xe")
+        self.root.title("Giao di\u1ec7n qu\u1ea3n l\u00fd b\u00e3i xe")
         self.root.geometry("1220x680")
         self.root.minsize(1120, 640)
         self.root.configure(bg=APP_BG)
@@ -95,7 +97,8 @@ class GiaoDienBaiXe:
         self._refresh_ui()
 
     def _build_ui(self):
-        header = tk.Frame(self.root, bg=HEADER_BG, height=70, bd=1, relief=tk.SOLID)
+        header = tk.Frame(self.root, bg=HEADER_BG, height=70, bd=0, relief=tk.SOLID,
+                          highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
         header.pack(fill=tk.X, padx=6, pady=(6, 4))
         header.pack_propagate(False)
         header.grid_columnconfigure(0, weight=1)
@@ -104,14 +107,14 @@ class GiaoDienBaiXe:
 
         tk.Label(
             header,
-            text="H\u1ec6 TH\u1ed0NG QU\u1ea2N L\u00dd B\u00c3I \u0110\u1ed6 XE",
+            text="GIAO DI\u1ec6N QU\u1ea2N L\u00dd B\u00c3I XE",
             bg=HEADER_BG,
             fg=HEADER_TEXT,
             font=("Segoe UI", 23, "bold"),
         ).place(relx=0.5, rely=0.5, anchor="center")
 
         tk.Button(header, text="RELOAD", command=self._reload,
-                  **self._btn_style(BTN_CYAN, padx=16, pady=8)).pack(side=tk.RIGHT, padx=(0, 8))
+                  **self._btn_style(BTN_YELLOW, padx=16, pady=8)).pack(side=tk.RIGHT, padx=(0, 8))
         tk.Button(header, text="THO\u00c1T", command=self._thoat,
                   **self._btn_style(BTN_PINK, fg="#3d2430", padx=20, pady=8)).pack(side=tk.RIGHT, padx=10)
 
@@ -121,38 +124,76 @@ class GiaoDienBaiXe:
         body.grid_columnconfigure(1, weight=4, minsize=390)
         body.grid_rowconfigure(0, weight=1)
 
-        left = tk.Frame(body, bg=APP_BG, bd=1, relief=tk.SOLID)
+        left = tk.Frame(body, bg=APP_BG, bd=0, relief=tk.SOLID,
+                        highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         left.grid_columnconfigure(0, weight=1)
 
-        right = tk.Frame(body, bg=APP_BG, bd=1, relief=tk.SOLID)
+        right = tk.Frame(body, bg=APP_BG, bd=0, relief=tk.SOLID,
+                         highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
         right.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        right.grid_rowconfigure(2, weight=1)
         right.grid_rowconfigure(3, weight=1)
         right.grid_columnconfigure(0, weight=1)
 
         # Left pane
         cam_source_row = tk.Frame(left, bg=APP_BG)
         cam_source_row.pack(fill=tk.X, padx=12, pady=(8, 6))
-        for i in range(5):
-            cam_source_row.grid_columnconfigure(i, weight=1 if i == 1 else 0)
+        for i in range(6):
+            cam_source_row.grid_columnconfigure(i, weight=1 if i == 5 else 0)
 
         tk.Label(cam_source_row, text="V\u00e0o", bg=APP_BG, fg=TEXT, font=("Segoe UI", 10, "bold")).grid(row=0, column=0, padx=(0, 4))
         self.opt_cam_vao = ttk.Combobox(cam_source_row, textvariable=self.var_cam_vao, state="readonly",
-                                        font=("Segoe UI", 10), width=8)
+                                        font=("Segoe UI", 10), width=10)
         self.opt_cam_vao.bind("<<ComboboxSelected>>", lambda _e: self._chon_camera("vao", self.var_cam_vao.get()))
-        self.opt_cam_vao.grid(row=0, column=1, sticky="ew", padx=(0, 4), ipady=1)
-        tk.Button(cam_source_row, text="B\u1eadt", command=lambda: self._bat_cam("vao"), **self._btn_style(BTN_CYAN, padx=8)).grid(row=0, column=2, sticky="ew", padx=2)
-        tk.Button(cam_source_row, text="T\u1eaft", command=lambda: self._tat_cam("vao"), **self._btn_style(BTN_CYAN, padx=8)).grid(row=0, column=3, sticky="ew", padx=2)
-        tk.Button(cam_source_row, text="Ch\u1ee5p", command=lambda: self._chup("vao"), **self._btn_style(BTN_GREEN, padx=8)).grid(row=0, column=4, sticky="ew", padx=(2, 8))
+        self.opt_cam_vao.grid(row=0, column=1, sticky="w", padx=(0, 8), ipady=1)
+        tk.Button(cam_source_row, text="B\u1eadt", command=lambda: self._bat_cam("vao"), **self._btn_style(BTN_GREEN, padx=8)).grid(row=0, column=2, sticky="ew", padx=2)
+        tk.Button(cam_source_row, text="T\u1eaft", command=lambda: self._tat_cam("vao"), **self._btn_style(BTN_RED, padx=8)).grid(row=0, column=3, sticky="ew", padx=2)
+        tk.Button(cam_source_row, text="Ch\u1ee5p", command=lambda: self._chup("vao"), **self._btn_style(BTN_YELLOW, padx=8)).grid(row=0, column=4, sticky="ew", padx=2)
 
         tk.Label(cam_source_row, text="Ra", bg=APP_BG, fg=TEXT, font=("Segoe UI", 10, "bold")).grid(row=1, column=0, padx=(0, 4), pady=(4, 0))
         self.opt_cam_ra = ttk.Combobox(cam_source_row, textvariable=self.var_cam_ra, state="readonly",
-                                       font=("Segoe UI", 10), width=8)
+                                       font=("Segoe UI", 10), width=10)
         self.opt_cam_ra.bind("<<ComboboxSelected>>", lambda _e: self._chon_camera("ra", self.var_cam_ra.get()))
-        self.opt_cam_ra.grid(row=1, column=1, sticky="ew", padx=(0, 4), pady=(4, 0), ipady=1)
-        tk.Button(cam_source_row, text="B\u1eadt", command=lambda: self._bat_cam("ra"), **self._btn_style(BTN_CYAN, padx=8)).grid(row=1, column=2, sticky="ew", padx=2, pady=(4, 0))
-        tk.Button(cam_source_row, text="T\u1eaft", command=lambda: self._tat_cam("ra"), **self._btn_style(BTN_CYAN, padx=8)).grid(row=1, column=3, sticky="ew", padx=2, pady=(4, 0))
-        tk.Button(cam_source_row, text="Ch\u1ee5p", command=lambda: self._chup("ra"), **self._btn_style(BTN_GREEN, padx=8)).grid(row=1, column=4, sticky="ew", padx=(2, 8), pady=(4, 0))
+        self.opt_cam_ra.grid(row=1, column=1, sticky="w", padx=(0, 8), pady=(4, 0), ipady=1)
+        tk.Button(cam_source_row, text="B\u1eadt", command=lambda: self._bat_cam("ra"), **self._btn_style(BTN_GREEN, padx=8)).grid(row=1, column=2, sticky="ew", padx=2, pady=(4, 0))
+        tk.Button(cam_source_row, text="T\u1eaft", command=lambda: self._tat_cam("ra"), **self._btn_style(BTN_RED, padx=8)).grid(row=1, column=3, sticky="ew", padx=2, pady=(4, 0))
+        tk.Button(cam_source_row, text="Ch\u1ee5p", command=lambda: self._chup("ra"), **self._btn_style(BTN_YELLOW, padx=8)).grid(row=1, column=4, sticky="ew", padx=2, pady=(4, 0))
+
+        status_compact = tk.Frame(
+            cam_source_row, bg=CARD_BG, bd=0, relief=tk.SOLID,
+            highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3,
+        )
+        status_compact.grid(row=0, column=5, rowspan=2, sticky="nsew", padx=(18, 0), pady=(0, 0))
+        status_compact.grid_columnconfigure(0, weight=1)
+        status_compact.grid_rowconfigure(0, weight=1)
+        status_compact.grid_rowconfigure(1, weight=1)
+        self.lbl_status = tk.Label(
+            status_compact,
+            text="C\u00d2N CH\u1ed6 TR\u1ed0NG",
+            bg=BTN_GREEN,
+            fg=TEXT,
+            font=("Segoe UI", 13, "bold"),
+            padx=18,
+            pady=4,
+            highlightbackground=ORANGE_BORDER,
+            highlightcolor=ORANGE_BORDER,
+            highlightthickness=2,
+        )
+        self.lbl_status.grid(row=0, column=0, sticky="ew", padx=6, pady=(6, 3))
+        self.lbl_slot = tk.Label(
+            status_compact,
+            text="0/3",
+            bg=BTN_GREEN,
+            fg=TEXT,
+            font=("Segoe UI", 15, "bold"),
+            padx=18,
+            pady=2,
+            highlightbackground=ORANGE_BORDER,
+            highlightcolor=ORANGE_BORDER,
+            highlightthickness=2,
+        )
+        self.lbl_slot.grid(row=1, column=0, pady=(0, 6))
 
         cam_preview_row = tk.Frame(left, bg=APP_BG, height=CAM_VIEW_H + 22)
         cam_preview_row.pack(fill=tk.X, padx=12, pady=(0, 6))
@@ -166,18 +207,20 @@ class GiaoDienBaiXe:
         tk.Label(cam_preview_row, text="C\u1ed4NG RA", bg=APP_BG, fg=TEXT,
                  font=("Segoe UI", 9, "bold")).grid(row=0, column=1, sticky="w", padx=(4, 0), pady=(0, 1))
 
-        self.cam_wrap_vao = tk.Frame(cam_preview_row, bg=CAM_BG, width=CAM_VIEW_W, height=CAM_VIEW_H, bd=1, relief=tk.SOLID)
+        self.cam_wrap_vao = tk.Frame(cam_preview_row, bg=CAM_BG, width=CAM_VIEW_W, height=CAM_VIEW_H, bd=0, relief=tk.SOLID,
+                                      highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
         self.cam_wrap_vao.grid(row=1, column=0, padx=(0, 4), sticky="n")
         self.cam_wrap_vao.pack_propagate(False)
         self.cam_wrap_vao.grid_propagate(False)
-        self.lbl_cam_vao = tk.Label(self.cam_wrap_vao, text="Camera v\u00e0o", bg=CAM_BG, fg="#d9e1ee", font=("Segoe UI", 11))
+        self.lbl_cam_vao = tk.Label(self.cam_wrap_vao, text="Camera v\u00e0o", bg=CAM_BG, fg=TEXT, font=("Segoe UI", 11))
         self.lbl_cam_vao.pack(fill=tk.BOTH, expand=True)
 
-        self.cam_wrap_ra = tk.Frame(cam_preview_row, bg=CAM_BG, width=CAM_VIEW_W, height=CAM_VIEW_H, bd=1, relief=tk.SOLID)
+        self.cam_wrap_ra = tk.Frame(cam_preview_row, bg=CAM_BG, width=CAM_VIEW_W, height=CAM_VIEW_H, bd=0, relief=tk.SOLID,
+                                     highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
         self.cam_wrap_ra.grid(row=1, column=1, padx=(4, 0), sticky="n")
         self.cam_wrap_ra.pack_propagate(False)
         self.cam_wrap_ra.grid_propagate(False)
-        self.lbl_cam_ra = tk.Label(self.cam_wrap_ra, text="Camera ra", bg=CAM_BG, fg="#d9e1ee", font=("Segoe UI", 11))
+        self.lbl_cam_ra = tk.Label(self.cam_wrap_ra, text="Camera ra", bg=CAM_BG, fg=TEXT, font=("Segoe UI", 11))
         self.lbl_cam_ra.pack(fill=tk.BOTH, expand=True)
 
         plate_panel = tk.Frame(left, bg=APP_BG)
@@ -196,32 +239,39 @@ class GiaoDienBaiXe:
             tk.Label(result_col, text=title, bg=APP_BG, fg=TEXT,
                      font=("Segoe UI", 9, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 2))
 
-            image_panel = tk.Frame(result_col, bg=APP_BG, height=PROC_PANEL_H, bd=1, relief=tk.SOLID)
+            image_panel = tk.Frame(result_col, bg=APP_BG, height=PROC_PANEL_H, bd=0, relief=tk.SOLID,
+                                   highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
             image_panel.grid(row=1, column=0, sticky="ew", pady=(0, 4))
             image_panel.grid_propagate(False)
             image_panel.grid_columnconfigure(0, weight=1)
+            image_panel.grid_rowconfigure(0, weight=1)
 
-            self.plate_image_wrap[cong] = tk.Frame(image_panel, bg=PLATE_BG, width=PROC_VIEW_W, height=PROC_VIEW_H, bd=1, relief=tk.SOLID)
-            self.plate_image_wrap[cong].grid(row=0, column=0, padx=6, pady=6)
+            self.plate_image_wrap[cong] = tk.Frame(image_panel, bg=PLATE_BG, width=PROC_VIEW_W, height=PROC_VIEW_H, bd=0, relief=tk.SOLID,
+                                                   highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
+            self.plate_image_wrap[cong].grid(row=0, column=0, padx=6, pady=6, sticky="")
             self.plate_image_wrap[cong].pack_propagate(False)
             self.plate_image_wrap[cong].grid_propagate(False)
             self.lbl_plate_image[cong] = tk.Label(
                 self.plate_image_wrap[cong],
                 text="--\n----",
                 bg=PLATE_BG,
-                fg="white",
+                fg=TEXT,
                 font=("Consolas", 18, "bold"),
             )
             self.lbl_plate_image[cong].pack(fill=tk.BOTH, expand=True)
 
-            text_panel = tk.Frame(result_col, bg=APP_BG, height=PLATE_TEXT_H + 12, bd=1, relief=tk.SOLID)
+            text_panel = tk.Frame(result_col, bg=APP_BG, height=PLATE_TEXT_H + 12, bd=0, relief=tk.SOLID,
+                                  highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
             text_panel.grid(row=2, column=0, sticky="ew", pady=(0, 4))
             text_panel.grid_propagate(False)
             text_panel.grid_columnconfigure(0, weight=1)
+            text_panel.grid_rowconfigure(0, weight=1)
 
-            result_wrap = tk.Frame(text_panel, bg="white", bd=3, relief=tk.SOLID, height=PLATE_TEXT_H)
-            result_wrap.grid(row=0, column=0, sticky="ew", padx=6, pady=6)
+            result_wrap = tk.Frame(text_panel, bg="white", bd=0, relief=tk.SOLID, width=PROC_MAX_W, height=PLATE_TEXT_H,
+                                   highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
+            result_wrap.grid(row=0, column=0, sticky="", padx=6, pady=6)
             result_wrap.grid_propagate(False)
+            result_wrap.pack_propagate(False)
             self.lbl_plate_text[cong] = tk.Label(
                 result_wrap,
                 text="---",
@@ -232,41 +282,15 @@ class GiaoDienBaiXe:
             self.lbl_plate_text[cong].pack(fill=tk.BOTH, expand=True)
 
         # Right pane
-        status_card = self._card(right)
-        status_card.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 6))
-        self.lbl_status = tk.Label(
-            status_card,
-            text="C\u00d2N CH\u1ed6 TR\u1ed0NG",
-            bg="#bdf3ce",
-            fg="#184c2d",
-            font=("Segoe UI", 16, "bold"),
-            pady=6,
-        )
-        self.lbl_status.pack(fill=tk.X, padx=8, pady=(8, 6))
-
-        status_row = tk.Frame(status_card, bg=CARD_BG)
-        status_row.pack(fill=tk.X, padx=8, pady=(0, 8))
-        status_row.grid_columnconfigure(0, weight=1)
-        self.lbl_slot = tk.Label(
-            status_row,
-            text="0/3",
-            bg="#f2b3b3",
-            fg="#4a1f1f",
-            font=("Segoe UI", 16, "bold"),
-            padx=22,
-            pady=2,
-        )
-        self.lbl_slot.grid(row=0, column=0, pady=2)
-
         mode_card = self._card(right)
-        mode_card.grid(row=1, column=0, sticky="ew", padx=10, pady=6)
+        mode_card.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 6))
         mode_grid = tk.Frame(mode_card, bg=CARD_BG)
         mode_grid.pack(fill=tk.X, padx=8, pady=8)
         mode_grid.grid_columnconfigure(0, weight=1)
         mode_grid.grid_columnconfigure(1, weight=1)
-        self.btn_manual = tk.Button(mode_grid, text="TH\u1ee6 C\u00d4NG", command=lambda: self.controller.mode("thu_cong"), **self._btn_style(BTN_RED))
+        self.btn_manual = tk.Button(mode_grid, text="TH\u1ee6 C\u00d4NG", command=lambda: self.controller.mode("thu_cong", schedule=lambda ms, fn: self.root.after(ms, fn)), **self._btn_style(BTN_RED))
         self.btn_manual.grid(row=0, column=0, sticky="ew", padx=(0, 5))
-        self.btn_auto = tk.Button(mode_grid, text="T\u1ef0 \u0110\u1ed8NG", command=lambda: self.controller.mode("tu_dong"), **self._btn_style(BTN_GREEN))
+        self.btn_auto = tk.Button(mode_grid, text="T\u1ef0 \u0110\u1ed8NG", command=lambda: self.controller.mode("tu_dong", schedule=lambda ms, fn: self.root.after(ms, fn)), **self._btn_style(BTN_GREEN))
         self.btn_auto.grid(row=0, column=1, sticky="ew", padx=(5, 0))
         self.btn_gate_in = tk.Button(mode_grid, text="C\u1ed5ng v\u00e0o", command=lambda: self.controller.barie_click("vao", schedule=lambda ms, fn: self.root.after(ms, fn)), **self._btn_style(BTN_PINK))
         self.btn_gate_in.grid(row=1, column=0, sticky="ew", padx=(0, 5), pady=(4, 0))
@@ -302,76 +326,100 @@ class GiaoDienBaiXe:
         self._quet_com()
 
         plate_card = self._card(right)
-        plate_card.grid(row=2, column=0, sticky="ew", padx=10, pady=6)
+        plate_card.grid(row=1, column=0, sticky="ew", padx=10, pady=(4, 2))
+        plate_card.grid_columnconfigure(0, weight=1)
+        plate_card.grid_columnconfigure(1, weight=0)
+        plate_card.grid_rowconfigure(0, weight=1, uniform="plate_row")
+        plate_card.grid_rowconfigure(1, weight=1, uniform="plate_row")
 
-        add_row = tk.Frame(plate_card, bg=CARD_BG)
-        add_row.pack(fill=tk.X, padx=8, pady=(8, 4))
-        add_row.grid_columnconfigure(0, weight=1)
-        add_row.grid_columnconfigure(1, weight=0)
-        self.ent_plate = tk.Entry(add_row, font=("Segoe UI", 11), bg="white", fg=TEXT, relief=tk.SOLID, bd=1)
-        self.ent_plate.grid(row=0, column=0, sticky="ew", padx=(0, 8), ipady=4)
-        tk.Button(add_row, text="TH\u00caM", command=self._add_plate, **self._btn_style(BTN_BLUE)).grid(row=0, column=1, sticky="ns")
+        self.ent_plate = tk.Entry(plate_card, font=("Segoe UI", 10), bg="white", fg=TEXT, relief=tk.SOLID, bd=1)
+        self.ent_plate.grid(row=0, column=0, sticky="ew", padx=(6, 4), pady=(4, 2), ipady=2)
+        tk.Button(plate_card, text="TH\u00caM", command=self._add_plate, **self._btn_style(BTN_GREEN, padx=8, pady=3)).grid(row=0, column=1, sticky="nsew", padx=(0, 6), pady=(4, 2))
 
-
-        del_row = tk.Frame(plate_card, bg=CARD_BG)
-        del_row.pack(fill=tk.X, padx=8, pady=(6, 8))
-        del_row.grid_columnconfigure(0, weight=1)
-        del_row.grid_columnconfigure(1, weight=0)
-
-        self.cmb_plate = ttk.Combobox(del_row, textvariable=self.var_plate, state="readonly", font=("Segoe UI", 11))
-        self.cmb_plate.grid(row=0, column=0, sticky="ew", padx=(0, 8), ipady=4)
+        self.cmb_plate = ttk.Combobox(plate_card, textvariable=self.var_plate, state="readonly", font=("Segoe UI", 10))
+        self.cmb_plate.grid(row=1, column=0, sticky="ew", padx=(6, 4), pady=(2, 4), ipady=2)
         self.cmb_plate["values"] = [DELETE_PLACEHOLDER]
         self.cmb_plate.set(DELETE_PLACEHOLDER)
         self.cmb_plate.bind("<<ComboboxSelected>>", lambda _e: self._refresh_delete_placeholder_style())
-        tk.Button(del_row, text="X\u00d3A", command=self._del_plate, **self._btn_style(BTN_PEACH)).grid(row=0, column=1, sticky="ns")
+        tk.Button(plate_card, text="X\u00d3A", command=self._del_plate, **self._btn_style(BTN_RED, padx=8, pady=3)).grid(row=1, column=1, sticky="nsew", padx=(0, 6), pady=(2, 4))
         self._refresh_delete_placeholder_style()
 
-        log_card = self._card(right)
-        log_card.grid(row=3, column=0, sticky="nsew", padx=10, pady=(6, 10))
-        tk.Label(log_card, text="Nh\u1eadt k\u00fd", bg=CARD_BG, fg=TEXT, font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=8, pady=(6, 0))
-        self.txt_log = tk.Text(
-            log_card,
-            height=4,
-            state=tk.DISABLED,
-            font=("Consolas", 9),
-            bg=INPUT_BG,
-            fg=TEXT,
-            relief=tk.SOLID,
-            bd=1,
-            padx=8,
-            pady=4,
+        # === NHAT KY HE THONG (tren) ===
+        log_sys_card = self._card(right)
+        log_sys_card.grid(row=2, column=0, sticky="nsew", padx=10, pady=(6, 3))
+        tk.Label(log_sys_card, text="H\u1ec7 th\u1ed1ng", bg=HEADER_TEXT, fg="white", font=("Segoe UI", 10, "bold"), padx=8, pady=2).pack(fill=tk.X, padx=6, pady=(6, 0))
+        self.txt_log_sys = tk.Text(
+            log_sys_card, height=3, state=tk.DISABLED,
+            font=("Consolas", 9, "bold"), bg="#0f172a", fg="#e5f3ff",
+            insertbackground="#e5f3ff", relief=tk.SOLID, bd=2, padx=8, pady=4,
         )
-        self.txt_log.pack(fill=tk.BOTH, expand=True, padx=8, pady=(6, 8))
+        self.txt_log_sys.pack(fill=tk.BOTH, expand=True, padx=6, pady=(4, 6))
+
+        # === NHAT KY CONG VAO / CONG RA (duoi, chia doi) ===
+        log_gate_card = self._card(right)
+        log_gate_card.grid(row=3, column=0, sticky="nsew", padx=10, pady=(3, 10))
+        log_gate_card.grid_columnconfigure(0, weight=1)
+        log_gate_card.grid_columnconfigure(1, weight=1)
+        log_gate_card.grid_rowconfigure(1, weight=1)
+
+        tk.Label(log_gate_card, text="C\u1ed5ng v\u00e0o", bg="#1a5276", fg="white", font=("Segoe UI", 10, "bold"), padx=8, pady=2).grid(row=0, column=0, sticky="ew", padx=(6, 3), pady=(6, 0))
+        tk.Label(log_gate_card, text="C\u1ed5ng ra", bg="#7b241c", fg="white", font=("Segoe UI", 10, "bold"), padx=8, pady=2).grid(row=0, column=1, sticky="ew", padx=(3, 6), pady=(6, 0))
+
+        self.txt_log_vao = tk.Text(
+            log_gate_card, height=3, state=tk.DISABLED,
+            font=("Consolas", 9, "bold"), bg="#0c1a2e", fg="#a8d8ff",
+            insertbackground="#a8d8ff", relief=tk.SOLID, bd=2, padx=8, pady=4,
+        )
+        self.txt_log_vao.grid(row=1, column=0, sticky="nsew", padx=(6, 3), pady=(4, 6))
+
+        self.txt_log_ra = tk.Text(
+            log_gate_card, height=3, state=tk.DISABLED,
+            font=("Consolas", 9, "bold"), bg="#2a0c0c", fg="#ffb8b8",
+            insertbackground="#ffb8b8", relief=tk.SOLID, bd=2, padx=8, pady=4,
+        )
+        self.txt_log_ra.grid(row=1, column=1, sticky="nsew", padx=(3, 6), pady=(4, 6))
 
     def _card(self, parent):
-        return tk.Frame(parent, bg=CARD_BG, bd=1, relief=tk.SOLID)
+        return tk.Frame(parent, bg=CARD_BG, bd=0, relief=tk.SOLID,
+                        highlightbackground=ORANGE_BORDER, highlightcolor=ORANGE_BORDER, highlightthickness=3)
 
     def _btn_style(self, bg, fg="#21344e", padx=10, pady=7):
         return {"font": ("Segoe UI", 11, "bold"), "bg": bg, "fg": fg,
                 "activebackground": bg, "activeforeground": fg,
-                "relief": tk.FLAT, "bd": 0, "cursor": "hand2",
+                "relief": tk.SOLID, "bd": 1, "cursor": "hand2",
+                "highlightbackground": ORANGE_BORDER,
+                "highlightcolor": ORANGE_BORDER,
+                "highlightthickness": 1,
                 "padx": padx, "pady": pady}
 
     def _refresh_delete_placeholder_style(self):
         color = "#99a5b7" if self.var_plate.get() == DELETE_PLACEHOLDER else TEXT
         self.cmb_plate.configure(foreground=color)
 
-    def _log(self, msg):
+    def _log(self, msg, cong=None):
         timestamp = datetime.now().strftime("%H:%M:%S")
-        self.txt_log.config(state=tk.NORMAL)
-        self.txt_log.insert(tk.END, f"[{timestamp}] {msg}\n")
-        self.txt_log.see(tk.END)
-        # Gioi han log: giu 500 dong cuoi, xoa dong cu de tranh ngon RAM
-        line_count = int(self.txt_log.index("end-1c").split(".")[0])
+        line = f"[{timestamp}] {msg}\n"
+
+        if cong == "vao":
+            widget = self.txt_log_vao
+        elif cong == "ra":
+            widget = self.txt_log_ra
+        else:
+            widget = self.txt_log_sys
+
+        widget.config(state=tk.NORMAL)
+        widget.insert(tk.END, line)
+        widget.see(tk.END)
+        line_count = int(widget.index("end-1c").split(".")[0])
         if line_count > 500:
-            self.txt_log.delete("1.0", f"{line_count - 500}.0")
-        self.txt_log.config(state=tk.DISABLED)
+            widget.delete("1.0", f"{line_count - 500}.0")
+        widget.config(state=tk.DISABLED)
 
     def _set_plate_image(self, cong, image):
         wrap = self.plate_image_wrap[cong]
         label = self.lbl_plate_image[cong]
         if image is None or cv2 is None or Image is None or ImageTk is None:
-            label.config(image="", text="--\n----", bg=PLATE_BG, fg="white")
+            label.config(image="", text="--\n----", bg=PLATE_BG, fg=TEXT)
             self._photo_plate[cong] = None
             return
 
@@ -399,7 +447,7 @@ class GiaoDienBaiXe:
     def _on_plate_result(self, cong, bs, image):
         cong = cong if cong in ("vao", "ra") else "vao"
         if isinstance(image, str) and image == "processing":
-            self.lbl_plate_image[cong].config(image="", text="\u0110ang x\u1eed l\u00fd...", fg="#ecf4ff", bg=PLATE_BG)
+            self.lbl_plate_image[cong].config(image="", text="\u0110ang x\u1eed l\u00fd...", fg=TEXT, bg=PLATE_BG)
             self.lbl_plate_text[cong].config(text="\u0110ang x\u1eed l\u00fd...")
             return
         self._set_plate_image(cong, image if not isinstance(image, str) else None)
@@ -434,7 +482,7 @@ class GiaoDienBaiXe:
     def _refresh_camera_preview(self, cong, rgb):
         label = self.lbl_cam_vao if cong == "vao" else self.lbl_cam_ra
         if rgb is None or Image is None or ImageTk is None:
-            label.config(image="", text="Camera v\u00e0o" if cong == "vao" else "Camera ra", fg="#d9e1ee", bg=CAM_BG)
+            label.config(image="", text="Camera v\u00e0o" if cong == "vao" else "Camera ra", fg=TEXT, bg=CAM_BG)
             self._photo_cam[cong] = None
             return
 
@@ -447,7 +495,7 @@ class GiaoDienBaiXe:
         new_w = max(1, int(src_w * scale))
         new_h = max(1, int(src_h * scale))
         resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        cropped = Image.new("RGB", (target_w, target_h), (9, 22, 42))
+        cropped = Image.new("RGB", (target_w, target_h), (255, 255, 255))
         left = (target_w - new_w) // 2
         top = (target_h - new_h) // 2
         cropped.paste(resized, (left, top))
@@ -462,22 +510,24 @@ class GiaoDienBaiXe:
         self.lbl_slot.config(text=f"{so_xe}/{suc_chua}")
 
         if so_xe < suc_chua:
-            self.lbl_status.config(text="C\u00d2N CH\u1ed6 TR\u1ed0NG", bg="#bdf3ce", fg="#184c2d")
+            self.lbl_status.config(text="C\u00d2N CH\u1ed6 TR\u1ed0NG", bg=BTN_GREEN, fg=TEXT)
+            self.lbl_slot.config(bg=BTN_GREEN, fg=TEXT)
         else:
-            self.lbl_status.config(text="H\u1ebeT CH\u1ed6", bg="#ffd2d7", fg="#842634")
+            self.lbl_status.config(text="H\u1ebeT CH\u1ed6", bg=BTN_RED, fg=TEXT)
+            self.lbl_slot.config(bg=BTN_RED, fg=TEXT)
 
-        # Tu dong mac dinh xanh, trang thai tat la do cho ca hai nut.
+        # Che do dang chon duoc to mau noi bat, che do con lai lam mo.
         if state["che_do"] == "tu_dong":
             self.btn_auto.config(bg=BTN_AUTO_ACTIVE, fg=TEXT, activebackground=BTN_AUTO_ACTIVE,
-                                 activeforeground=TEXT, relief=tk.FLAT)
+                                 activeforeground=TEXT, relief=tk.SOLID)
             self.btn_manual.config(bg=BTN_MUTED, fg=BTN_MUTED_TEXT, activebackground=BTN_MUTED,
-                                   activeforeground=BTN_MUTED_TEXT, relief=tk.FLAT)
+                                   activeforeground=BTN_MUTED_TEXT, relief=tk.SOLID)
             gate_state = tk.DISABLED
         else:
             self.btn_auto.config(bg=BTN_MUTED, fg=BTN_MUTED_TEXT, activebackground=BTN_MUTED,
-                                 activeforeground=BTN_MUTED_TEXT, relief=tk.FLAT)
+                                 activeforeground=BTN_MUTED_TEXT, relief=tk.SOLID)
             self.btn_manual.config(bg=BTN_MANUAL_ACTIVE, fg=TEXT, activebackground=BTN_MANUAL_ACTIVE,
-                                   activeforeground=TEXT, relief=tk.FLAT)
+                                   activeforeground=TEXT, relief=tk.SOLID)
             gate_state = tk.NORMAL
 
         for cong, btn in (("vao", self.btn_gate_in), ("ra", self.btn_gate_out)):
@@ -624,8 +674,8 @@ class GiaoDienBaiXe:
         self.var_plate.set(DELETE_PLACEHOLDER)
         self._plate_display_to_raw = {}
         self.ent_plate.delete(0, tk.END)
-        self.lbl_cam_vao.config(image="", text="Camera v\u00e0o", fg="#d9e1ee", bg=CAM_BG)
-        self.lbl_cam_ra.config(image="", text="Camera ra", fg="#d9e1ee", bg=CAM_BG)
+        self.lbl_cam_vao.config(image="", text="Camera v\u00e0o", fg=TEXT, bg=CAM_BG)
+        self.lbl_cam_ra.config(image="", text="Camera ra", fg=TEXT, bg=CAM_BG)
         for cong in ("vao", "ra"):
             self._set_plate_image(cong, None)
             self.lbl_plate_text[cong].config(text="---", bg="white", fg="#101010")

@@ -5,9 +5,12 @@ Luu tru: bien so hop le (whitelist), xe dang trong bai, cai dat.
 
 import sqlite3
 import threading
-import re
 from contextlib import contextmanager
 from datetime import datetime
+
+from nhan_dien_bien_so import (
+    chuan_hoa_bien_so,
+)
 
 
 class CSDLBaiXe:
@@ -30,7 +33,13 @@ class CSDLBaiXe:
             kn.close()
 
     def _chuan_hoa_bien_so(self, bien_so):
-        return re.sub(r"[^A-Za-z0-9]", "", (bien_so or "")).upper()
+        return chuan_hoa_bien_so(bien_so)
+
+    def _kiem_tra_bien_so(self, bien_so):
+        bien_so = self._chuan_hoa_bien_so(bien_so)
+        if not bien_so:
+            raise ValueError("Bien so rong sau chuan hoa")
+        return bien_so
 
     def _tao_bang(self):
         with self._khoa, self._kn() as kn:
@@ -63,7 +72,10 @@ class CSDLBaiXe:
             for row in rows:
                 cu = row["bien_so"]
                 moi = self._chuan_hoa_bien_so(cu)
-                if not moi or moi == cu:
+                if not moi:
+                    kn.execute(f"DELETE FROM {bang} WHERE bien_so=?", (cu,))
+                    continue
+                if moi == cu:
                     continue
                 if bang == "bien_so_hop_le":
                     kn.execute(
@@ -97,7 +109,7 @@ class CSDLBaiXe:
             ).fetchall()]
 
     def them_bien_so(self, bien_so, chu_xe=None):
-        bien_so = self._chuan_hoa_bien_so(bien_so)
+        bien_so = self._kiem_tra_bien_so(bien_so)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with self._khoa, self._kn() as kn:
             kn.execute("INSERT OR REPLACE INTO bien_so_hop_le VALUES (?,?,?)",
@@ -106,12 +118,16 @@ class CSDLBaiXe:
 
     def xoa_bien_so(self, bien_so):
         bien_so = self._chuan_hoa_bien_so(bien_so)
+        if not bien_so:
+            return
         with self._khoa, self._kn() as kn:
             kn.execute("DELETE FROM bien_so_hop_le WHERE bien_so=?", (bien_so,))
             kn.commit()
 
     def la_hop_le(self, bien_so):
         bien_so = self._chuan_hoa_bien_so(bien_so)
+        if not bien_so:
+            return False
         with self._khoa, self._kn() as kn:
             return kn.execute("SELECT 1 FROM bien_so_hop_le WHERE bien_so=?",
                               (bien_so,)).fetchone() is not None
@@ -119,7 +135,7 @@ class CSDLBaiXe:
     # --- Xe trong bai ---
 
     def them_xe(self, bien_so):
-        bien_so = self._chuan_hoa_bien_so(bien_so)
+        bien_so = self._kiem_tra_bien_so(bien_so)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with self._khoa, self._kn() as kn:
             try:
@@ -135,6 +151,8 @@ class CSDLBaiXe:
 
     def xoa_xe(self, bien_so):
         bien_so = self._chuan_hoa_bien_so(bien_so)
+        if not bien_so:
+            return False
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with self._khoa, self._kn() as kn:
             c = kn.execute("DELETE FROM xe_trong_bai WHERE bien_so=?", (bien_so,))
@@ -152,6 +170,8 @@ class CSDLBaiXe:
 
     def co_xe(self, bien_so):
         bien_so = self._chuan_hoa_bien_so(bien_so)
+        if not bien_so:
+            return False
         with self._khoa, self._kn() as kn:
             return kn.execute("SELECT 1 FROM xe_trong_bai WHERE bien_so=?",
                               (bien_so,)).fetchone() is not None

@@ -1,0 +1,6 @@
+﻿Bước,Tầng xử lý,Nhiệm vụ,Đầu ra
+1,YOLOv8n,Phát hiện vùng biển số,Bounding box vùng biển số hoặc dùng ảnh gốc dự phòng
+2,OpenCV,"Cắt vùng biển số và tạo ảnh gốc, CLAHE, Otsu",Ba biến thể ảnh đưa vào OCR
+3,PaddleOCR,Đọc ký tự trên từng biến thể ảnh,Chuỗi OCR thô và độ tin cậy trung bình
+4,Hậu xử lý,"Chuẩn hóa, sửa lỗi theo vị trí, kiểm tra cấu trúc",Ứng viên biển số đã xử lý
+5,Xếp hạng,Gộp ứng viên và chọn theo luật ưu tiên,Biển số cuối cùng

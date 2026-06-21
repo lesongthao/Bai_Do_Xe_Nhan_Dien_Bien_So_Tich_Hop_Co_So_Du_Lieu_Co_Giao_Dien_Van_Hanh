@@ -16,7 +16,11 @@ except Exception:
     cv2 = None
 
 from giao_tiep_arduino import KetNoiArduino
-from nhan_dien_bien_so import NhanDienBienSo, chuan_hoa_bien_so, dinh_dang_hien_thi
+from nhan_dien_bien_so import (
+    NhanDienBienSo,
+    chuan_hoa_bien_so,
+    dinh_dang_hien_thi,
+)
 from quan_ly_du_lieu import CSDLBaiXe
 
 
@@ -57,6 +61,8 @@ class DieuKhienHeThong:
         self.cam_bien_da_gap_vat_can = {"vao": False, "ra": False}
         self.cam_bien_edge_ts = {"vao": 0.0, "ra": 0.0}  # debounce: thoi diem canh len gan nhat
         self.cam_bien_debounce_ms = 800  # bo qua canh len trong khoang nay (ms)
+        self.delay_chup_ms = 1500  # doi xe dung truoc camera roi moi chup (ms)
+        self.bien_so_cho_vao = None
         self.bien_so_cho_ra = None
         self.retry_ai_after_ms = 1500
         self.retry_ai_dang_cho = {"vao": False, "ra": False}
@@ -115,8 +121,8 @@ class DieuKhienHeThong:
         self._state_dirty.clear()
         self.on_state_change()
 
-    def log(self, message):
-        self.on_log(message)
+    def log(self, message, cong=None):
+        self.on_log(message, cong)
 
     def start(self):
         self.log("He thong san sang")
@@ -131,10 +137,15 @@ class DieuKhienHeThong:
         self.tat_cam("ra", log_message=False)
         self.arduino.ngat()
 
-    def mode(self, mode):
+    def mode(self, mode, schedule=None):
         self.che_do = mode
         self.bien_so_cho_ra = None
         self.log("Che do: Tu dong" if mode == "tu_dong" else "Che do: Thu cong")
+        # Khi chuyen sang tu dong, kiem tra cam bien dang co xe -> chup luon
+        if mode == "tu_dong":
+            for cong, sensor_key in (("vao", "xe_vao"), ("ra", "xe_ra")):
+                if self.cam_bien.get(sensor_key, False) and self.barie[cong] == "dong":
+                    self._yeu_cau_chup(cong, schedule=schedule)
         self.notify()
 
     def add_plate(self, text):
@@ -164,12 +175,12 @@ class DieuKhienHeThong:
             sensor_key = "xe_vao" if cong == "vao" else "xe_ra"
             self.cam_bien_da_gap_vat_can[cong] = self.cam_bien.get(sensor_key, False)
             self.arduino.gui_lenh("VAO_MO" if cong == "vao" else "RA_MO")
-            self.log("Mo cong vao" if cong == "vao" else "Mo cong ra")
+            self.log("Mo cong vao" if cong == "vao" else "Mo cong ra", cong=cong)
         else:
             sensor_key = "xe_vao" if cong == "vao" else "xe_ra"
             if self.cam_bien.get(sensor_key, False):
                 self.cho_dong[cong] = True
-                self.log("Xe con trong vung cam bien, doi dong an toan")
+                self.log("Xe chua di qua, doi dong an toan", cong=cong)
                 self.auto_close(cong, schedule=schedule)
                 return
             self.auto_close(cong, schedule=schedule)
@@ -230,11 +241,8 @@ class DieuKhienHeThong:
         self.latest_frame[cong] = None
         self.latest_rgb[cong] = None
         self._last_preview_notify[cong] = 0.0
-        actual_w = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
-        actual_h = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-        actual_fps = camera.get(cv2.CAP_PROP_FPS) or 0
-        ten_cong = "vao" if cong == "vao" else "ra"
-        self.log(f"Bat camera {ten_cong} {self.camera_index[cong]}: {actual_w}x{actual_h} @ {actual_fps:.0f}fps")
+
+        self.log(f"Bat camera {'vao' if cong == 'vao' else 'ra'}", cong=cong)
         threading.Thread(target=self._cam_reader, args=(cong, camera), daemon=True).start()
         self.notify()
 
@@ -248,7 +256,7 @@ class DieuKhienHeThong:
         if cam is not None:
             cam.release()
         if log_message:
-            self.log("Tat camera vao" if cong == "vao" else "Tat camera ra")
+            self.log("Tat camera vao" if cong == "vao" else "Tat camera ra", cong=cong)
         self.notify()
 
     def chup(self, cong="vao"):
@@ -259,21 +267,21 @@ class DieuKhienHeThong:
             try:
                 self.bat_cam(cong, str(self.camera_index[cong]))
             except Exception:
-                self.log("Chua bat camera vao" if cong == "vao" else "Chua bat camera ra")
+                self.log("Chua bat camera vao" if cong == "vao" else "Chua bat camera ra", cong=cong)
                 return False
         if not self.ai_ready:
-            self.log("AI chua san sang")
+            self.log("AI chua san sang", cong=cong)
             return False
         if self.dang_nhan_dien:
             return False
         if not self._wait_for_frame(cong, timeout_sec=1.2):
-            self.log("Chua co frame")
+            self.log("Chua co frame", cong=cong)
             return False
         frame_chup = self.latest_frame[cong].copy()
         self.dang_nhan_dien = True
         self.ai_cong_hien_tai = cong
         self.ai_started_at = time.monotonic()
-        self.log("Dang nhan dien bien so cong vao" if cong == "vao" else "Dang nhan dien bien so cong ra")
+        self.log("Dang nhan dien bien so cong vao" if cong == "vao" else "Dang nhan dien bien so cong ra", cong=cong)
         self.on_plate_result(cong, None, "processing")
         try:
             while not self.q_ai.empty():
@@ -284,7 +292,7 @@ class DieuKhienHeThong:
             self.ai_cong_hien_tai = None
             self.ai_started_at = 0.0
             self.on_plate_result(cong, None, None)
-            self.log("Khong the day frame vao hang doi AI")
+            self.log("Khong the day frame vao hang doi AI", cong=cong)
             self.notify()
             return False
         return True
@@ -346,12 +354,19 @@ class DieuKhienHeThong:
         self.cam_bien_da_gap_vat_can[cong] = False
         self.barie[cong] = "dong"
         self.arduino.gui_lenh("VAO_DONG" if cong == "vao" else "RA_DONG")
+        self.log("Dong cong vao" if cong == "vao" else "Dong cong ra", cong=cong)
+        if cong == "vao" and self.bien_so_cho_vao:
+            bs = self.bien_so_cho_vao
+            self.bien_so_cho_vao = None
+            if self.db.them_xe(bs):
+                self._invalidate_db_cache()
+                self.log("Xe da vao bai - da cap nhat so luong", cong="vao")
         if cong == "ra" and self.bien_so_cho_ra:
             bs = self.bien_so_cho_ra
             self.bien_so_cho_ra = None
             if self.db.xoa_xe(bs):
                 self._invalidate_db_cache()
-                self.log("Xe da ra khoi bai - da cap nhat so luong")
+                self.log("Xe da ra khoi bai - da cap nhat so luong", cong="ra")
         self.notify()
 
     def poll(self, schedule=None):
@@ -376,8 +391,9 @@ class DieuKhienHeThong:
             return
         if time.monotonic() - self.ai_started_at < self.ai_timeout_sec:
             return
+        timeout_cong = self.ai_cong_hien_tai
         self._reset_ai()
-        self.log("Nhan dien qua lau (>8s), da huy lan chup. Thu lai.")
+        self.log("Nhan dien qua lau (>8s), da huy lan chup. Thu lai.", cong=timeout_cong)
         self.notify()
 
     def danh_sach_cong_com(self):
@@ -395,8 +411,6 @@ class DieuKhienHeThong:
                 if self.arduino.kiem_tra_handshake(thoi_gian_cho=3.0):
                     self.ard_connected = True
                     self.q_msg.put(f"Arduino ket noi thanh cong: {ten_cong}")
-                    if self.arduino.firmware:
-                        self.q_msg.put(f"Arduino firmware: {self.arduino.firmware}")
                     threading.Thread(target=self._sensor_worker, daemon=True).start()
                 else:
                     self.arduino.ngat()
@@ -457,7 +471,11 @@ class DieuKhienHeThong:
                 last_edge = self.cam_bien_edge_ts.get(cong, 0.0)
                 if now_ms - last_edge >= self.cam_bien_debounce_ms:
                     self.cam_bien_edge_ts[cong] = now_ms
-                    self._yeu_cau_chup(cong, schedule=schedule)
+                    # Delay de xe dung truoc camera roi moi chup
+                    if schedule and self.delay_chup_ms > 0:
+                        schedule(self.delay_chup_ms, lambda g=cong: self._yeu_cau_chup(g, schedule=schedule))
+                    else:
+                        self._yeu_cau_chup(cong, schedule=schedule)
             # Tu dong dong khi xe roi khoi cam bien
             if old_val and not new_val and self.barie[cong] == "mo":
                 self.auto_close(cong, schedule=schedule)
@@ -487,15 +505,15 @@ class DieuKhienHeThong:
 
     def _cho_xe_vao(self, bs, log_msg, schedule=None):
         """Logic chung cho xe vao bai (tu dong va thu cong)."""
-        if self.db.them_xe(bs):
-            self._invalidate_db_cache()
+        self.bien_so_cho_vao = bs
+        if self.barie["vao"] == "dong":
             self.barie["vao"] = "mo"
             self.cho_dong["vao"] = False
             self.cam_bien_quang_tu["vao"] = None
             self.cam_bien_da_gap_vat_can["vao"] = self.cam_bien.get("xe_vao", False)
             self.arduino.gui_lenh("VAO_MO")
-            self.log(log_msg)
-            if schedule:
+            self.log(log_msg, cong="vao")
+            if schedule and self.che_do == "tu_dong":
                 schedule(5000, lambda: self.auto_close("vao", schedule=schedule))
 
     def _handle_ai_result(self, cong, bs, anh_bs, schedule=None):
@@ -507,23 +525,23 @@ class DieuKhienHeThong:
         if not bs:
             self.bien_so_cuoi = ""
             self.on_plate_result(cong, None, anh_bs)
-            self.log("Khong doc duoc bien so")
+            self.log("Khong doc duoc bien so", cong=cong)
             self._retry_or_give_up(cong, schedule)
             self.notify()
             return
         self.bien_so_cuoi = bs
         plate_text = dinh_dang_hien_thi(bs)
         self.on_plate_result(cong, bs, anh_bs)
-        self.log(f"Bien so cong {'vao' if cong == 'vao' else 'ra'}: {plate_text}")
+        self.log(f"Bien so cong {'vao' if cong == 'vao' else 'ra'}: {plate_text}", cong=cong)
 
         if cong == "ra":
             if not self.db.co_xe(bs):
-                self.log("Xe khong co trong bai - khong mo cong ra")
+                self.log("Xe khong co trong bai - khong mo cong ra", cong="ra")
                 self._retry_or_give_up(cong, schedule, reason="Bien so khong khop, thu lai")
                 self.notify()
                 return
             if self.che_do != "tu_dong" and not self.on_messagebox("Duyet", f"Cho xe {plate_text} ra?"):
-                self.log(f"Tu choi cho ra: {plate_text}")
+                self.log(f"Tu choi cho ra: {plate_text}", cong="ra")
                 self.retry_ai_count[cong] = 0  # nguoi dung tu choi = reset retry
                 self.notify()
                 return
@@ -536,8 +554,8 @@ class DieuKhienHeThong:
                 self.cam_bien_quang_tu["ra"] = None
                 self.cam_bien_da_gap_vat_can["ra"] = self.cam_bien.get("xe_ra", False)
                 self.arduino.gui_lenh("RA_MO")
-                self.log(f"Cho ra: {plate_text}")
-                if schedule:
+                self.log(f"Cho ra: {plate_text}", cong="ra")
+                if schedule and self.che_do == "tu_dong":
                     schedule(5000, lambda: self.auto_close("ra", schedule=schedule))
             self.notify()
             return
@@ -548,7 +566,7 @@ class DieuKhienHeThong:
             (lambda: self.db.so_xe() >= self.db.lay_suc_chua(), "Bai xe da day", False),
         ]:
             if check():
-                self.log(msg)
+                self.log(msg, cong=cong)
                 if can_retry:
                     self._retry_or_give_up(cong, schedule, reason="Bien so khong hop le, thu lai")
                 else:
@@ -563,20 +581,24 @@ class DieuKhienHeThong:
         elif self.on_messagebox("Duyet", f"Cho xe {plate_text} vao?"):
             self._cho_xe_vao(bs, f"Duyet cho vao: {plate_text}", schedule)
         else:
-            self.log(f"Tu choi: {plate_text}")
+            self.log(f"Tu choi: {plate_text}", cong=cong)
         self.notify()
 
     def _retry_or_give_up(self, cong, schedule, reason=None):
         """Thu lai nhan dien neu chua vuot qua so lan toi da, nguoc lai dung."""
+        # Chi tu dong thu lai khi o che do tu dong
+        if self.che_do != "tu_dong":
+            self.retry_ai_count[cong] = 0
+            return
         count = self.retry_ai_count.get(cong, 0) + 1
         self.retry_ai_count[cong] = count
         if count <= self.retry_ai_max:
             if reason:
-                self.log(f"{reason} (lan {count}/{self.retry_ai_max})")
+                self.log(f"{reason} (lan {count}/{self.retry_ai_max})", cong=cong)
             self._schedule_retry_ai(cong, schedule)
         else:
             self.retry_ai_count[cong] = 0
-            self.log(f"Da thu {self.retry_ai_max} lan - khong nhan dien duoc. Vui long thu cong.")
+            self.log(f"Da thu {self.retry_ai_max} lan - khong nhan dien duoc. Vui long thu cong.", cong=cong)
 
     def _ai_worker(self):
         try:
@@ -596,7 +618,7 @@ class DieuKhienHeThong:
             try:
                 t0 = time.monotonic()
                 bs, anh_bs = self.ai.nhan_dien(frame)
-                self.q_msg.put(f"AI xu ly xong sau {time.monotonic() - t0:.2f}s")
+                self.q_msg.put(("ai_log", cong, f"AI xu ly xong sau {time.monotonic() - t0:.2f}s"))
                 self.q_msg.put(("ai_result", cong, bs, anh_bs))
             except Exception as exc:
                 self.q_msg.put(("ai_error", cong, str(exc)))
@@ -609,8 +631,10 @@ class DieuKhienHeThong:
                     if isinstance(msg, tuple) and msg and msg[0] == "ai_result":
                         self._handle_ai_result(msg[1], msg[2], msg[3], schedule=schedule)
                     elif isinstance(msg, tuple) and msg and msg[0] == "ai_error":
-                        self.log(f"Loi AI: {msg[2]}")
+                        self.log(f"Loi AI: {msg[2]}", cong=msg[1])
                         self._reset_ai(cong=msg[1]); self.notify()
+                    elif isinstance(msg, tuple) and msg and msg[0] == "ai_log":
+                        self.log(msg[2], cong=msg[1])
                     else:
                         self.log(msg)
                 except Exception as exc:

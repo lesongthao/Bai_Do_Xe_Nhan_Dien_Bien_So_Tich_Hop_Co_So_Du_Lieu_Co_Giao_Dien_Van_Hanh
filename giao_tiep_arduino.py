@@ -134,7 +134,7 @@ class KetNoiArduino:
         Arduino gui: CAM_BIEN:xe_vao=1,xe_ra=0
         Tra ve: {"xe_vao": True/False, "xe_ra": True/False}
         """
-        # Chi giu lock NGAN de lay serial ref â€” KHONG giu lock trong readline!
+        # Chi giu lock NGAN de lay serial ref, KHONG giu lock trong readline!
         with self._khoa:
             s = self._cong if self._cong and getattr(self._cong, "is_open", False) else None
         if not s:

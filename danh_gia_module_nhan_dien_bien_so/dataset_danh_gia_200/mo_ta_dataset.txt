@@ -1,0 +1,8 @@
+Dataset: Tap danh gia module nhan dien bien so xe
+So luong: 200 anh
+Nguon goc: Thu thap tu nhieu nguon Internet, gom anh xe may va o to tai Viet Nam
+Nhan (ground truth): Bien so xe duoc gan thu cong
+Dinh dang anh: JPG
+Cau truc:
+  - images/                  : 200 anh (001.jpg -> 200.jpg)
+  - labels/nhan_bien_so.csv  : File CSV gom 2 cot (ten_anh, ground_truth)

@@ -29,7 +29,7 @@ const int GOC_DONG_VAO = 0;
 const int GOC_MO_RA = 90;
 const int GOC_DONG_RA = 0;
 
-// Toc do servo: moi buoc 1 do, tre 12ms -> quay 90 do mat khoang 1.1 giay.
+// Toc do servo: moi buoc 1 do, tre 20ms -> quay 90 do mat khoang 1.8 giay.
 // Tang len 15-20 neu muon cham hon; giam xuong 8-10 neu muon nhanh hon.
 const int SERVO_BUOC_DO = 1;
 const int SERVO_TRE_BUOC_MS = 20;
@@ -41,8 +41,13 @@ const unsigned long CHU_KY_GUI_TRANG_THAI_MS = 300;
 Servo servoVao;
 Servo servoRa;
 
+// Goc hien tai va goc dich cua moi servo (state machine)
 int gocHienTaiVao = GOC_DONG_VAO;
 int gocHienTaiRa = GOC_DONG_RA;
+int gocDichVao = GOC_DONG_VAO;
+int gocDichRa = GOC_DONG_RA;
+unsigned long mocBuocVao = 0;
+unsigned long mocBuocRa = 0;
 
 bool xeVao = false;
 bool xeRa = false;
@@ -79,27 +84,34 @@ void guiTrangThaiCamBien() {
   Serial.println(xeRa ? 1 : 0);
 }
 
-void quayServoMuot(Servo &servo, int &gocHienTai, int gocDich) {
+// Non-blocking: quay servo 1 buoc (1 do) moi lan goi, chi khi du 20ms.
+// Goi lien tuc trong loop() de servo quay muot ma khong block.
+void capNhatMotServo(Servo &servo, int &gocHienTai, int gocDich, unsigned long &mocBuoc) {
   if (gocHienTai == gocDich) return;
-  int buoc = (gocDich > gocHienTai) ? SERVO_BUOC_DO : -SERVO_BUOC_DO;
-  while (gocHienTai != gocDich) {
-    gocHienTai += buoc;
-    if ((buoc > 0 && gocHienTai > gocDich) || (buoc < 0 && gocHienTai < gocDich)) {
-      gocHienTai = gocDich;
-    }
-    servo.write(gocHienTai);
-    delay(SERVO_TRE_BUOC_MS);
+
+  unsigned long now = millis();
+  if (now - mocBuoc < (unsigned long)SERVO_TRE_BUOC_MS) return;
+  mocBuoc = now;
+
+  if (gocHienTai < gocDich) {
+    gocHienTai = min(gocHienTai + SERVO_BUOC_DO, gocDich);
+  } else {
+    gocHienTai = max(gocHienTai - SERVO_BUOC_DO, gocDich);
   }
+  servo.write(gocHienTai);
+}
+
+void capNhatServo() {
+  capNhatMotServo(servoVao, gocHienTaiVao, gocDichVao, mocBuocVao);
+  capNhatMotServo(servoRa, gocHienTaiRa, gocDichRa, mocBuocRa);
 }
 
 void datBarieVao(bool mo) {
-  int gocDich = mo ? GOC_MO_VAO : GOC_DONG_VAO;
-  quayServoMuot(servoVao, gocHienTaiVao, gocDich);
+  gocDichVao = mo ? GOC_MO_VAO : GOC_DONG_VAO;
 }
 
 void datBarieRa(bool mo) {
-  int gocDich = mo ? GOC_MO_RA : GOC_DONG_RA;
-  quayServoMuot(servoRa, gocHienTaiRa, gocDich);
+  gocDichRa = mo ? GOC_MO_RA : GOC_DONG_RA;
 }
 
 void xuLyLenh(String lenh) {
@@ -113,10 +125,7 @@ void xuLyLenh(String lenh) {
   if (lenh == "SERVO_TEST") {
     datBarieVao(true);
     datBarieRa(true);
-    delay(500);
-    datBarieVao(false);
-    datBarieRa(false);
-    guiThongTin("SERVO_TEST_OK");
+    guiThongTin("SERVO_TEST_MO");
     return;
   }
 
@@ -153,6 +162,8 @@ void setup() {
 
   gocHienTaiVao = GOC_DONG_VAO;
   gocHienTaiRa = GOC_DONG_RA;
+  gocDichVao = GOC_DONG_VAO;
+  gocDichRa = GOC_DONG_RA;
   servoVao.write(gocHienTaiVao);
   servoRa.write(gocHienTaiRa);
 
@@ -171,6 +182,7 @@ void setup() {
 void loop() {
   docLenhSerial();
   capNhatCamBien();
+  capNhatServo();
 
   bool thayDoi = (xeVao != xeVaoTruoc) || (xeRa != xeRaTruoc);
   unsigned long hienTai = millis();
@@ -182,5 +194,5 @@ void loop() {
     xeRaTruoc = xeRa;
   }
 
-  delay(10);
+  delay(5);
 }
