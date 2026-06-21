@@ -1,6 +1,6 @@
 """
 Module nhan dien bien so xe.
-Pipeline: YOLOv8 tim vung bien â†’ Tien xu ly anh â†’ PaddleOCR doc ky tu â†’ Hau xu ly VN.
+Pipeline: YOLOv8 tim vung bien -> tien xu ly anh -> PaddleOCR doc ky tu -> hau xu ly VN.
 """
 
 # Luu y: OMP_NUM_THREADS=1 duoc dat trong giao_dien_chinh.py (entry point)
@@ -9,6 +9,103 @@ Pipeline: YOLOv8 tim vung bien â†’ Tien xu ly anh â†’ PaddleOCR doc ky
 import os
 import re
 from pathlib import Path
+
+MIN_PLATE_LENGTH = 7
+MAX_PLATE_LENGTH = 10
+_ONLY_ALNUM_RE = re.compile(r"[^A-Z0-9]+")
+
+_TO_DIGIT = {
+    "O": "0",
+    "Q": "0",
+    "D": "0",
+    "I": "1",
+    "L": "1",
+    "A": "4",
+    "T": "7",
+    "Z": "2",
+    "S": "5",
+    "G": "6",
+    "B": "8",
+}
+
+_TO_LETTER = {
+    "0": "O",
+    "1": "I",
+    "4": "A",
+    "7": "T",
+    "2": "Z",
+    "5": "S",
+    "6": "G",
+    "8": "B",
+}
+
+
+def chuan_hoa_bien_so(text: str | None) -> str:
+    """Chuan hoa chuoi bien so ve dang A-Z0-9 lien nhau."""
+    if text is None:
+        return ""
+    text = str(text).upper().strip()
+    if not text:
+        return ""
+    return _ONLY_ALNUM_RE.sub("", text)
+
+
+def la_bien_so_hop_cau_truc(bien_so: str | None) -> bool:
+    """Kiem tra cau truc bien so da chot cho do an."""
+    bs = chuan_hoa_bien_so(bien_so)
+    if not (MIN_PLATE_LENGTH <= len(bs) <= MAX_PLATE_LENGTH):
+        return False
+    if not bs[:2].isdigit():
+        return False
+    if not (11 <= int(bs[:2]) <= 99):
+        return False
+    if not bs[2].isalpha():
+        return False
+    ky_tu_thu_4 = bs[3]
+    if not ky_tu_thu_4.isalnum():
+        return False
+    return bs[4:].isdigit()
+
+
+def _expects_letter(index: int) -> bool:
+    return index == 2
+
+
+def _expects_digit(index: int) -> bool:
+    return index in (0, 1) or index >= 4
+
+
+def sua_loi_theo_vi_tri_vn(bien_so: str | None) -> str:
+    """Sua loi OCR pho bien theo vi tri ky tu cua cau truc do an."""
+    src = chuan_hoa_bien_so(bien_so)
+    if not src:
+        return ""
+
+    out = []
+    for i, ch in enumerate(src):
+        if _expects_letter(i):
+            out.append(_TO_LETTER.get(ch, ch))
+        elif _expects_digit(i):
+            out.append(_TO_DIGIT.get(ch, ch))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def dem_so_ky_tu_da_sua(raw_text: str | None, fixed_text: str | None) -> int:
+    raw = chuan_hoa_bien_so(raw_text)
+    fixed = chuan_hoa_bien_so(fixed_text)
+    shared = min(len(raw), len(fixed))
+    diff = sum(1 for i in range(shared) if raw[i] != fixed[i])
+    diff += abs(len(raw) - len(fixed))
+    return diff
+
+
+def dinh_dang_hien_thi(bien_so: str | None) -> str:
+    bs = chuan_hoa_bien_so(bien_so)
+    if not bs:
+        return ""
+    return bs
 
 _LOCAL_ULTRALYTICS_CONFIG = Path(__file__).resolve().parent / ".ultralytics"
 try:
@@ -33,65 +130,6 @@ try:
     from paddleocr import PaddleOCR
 except Exception:
     PaddleOCR = None
-
-
-# ============================================================
-# HAM TIEN ICH
-# ============================================================
-
-def chuan_hoa_bien_so(bien_so):
-    """Chuan hoa bien so: bo ky tu dac biet, viet hoa."""
-    return re.sub(r"[^A-Za-z0-9]", "", (bien_so or "")).upper()
-
-
-def dinh_dang_hien_thi(bien_so):
-    """Dinh dang bien so de hien thi: bo dau, viet hoa, chi giu chu + so."""
-    return chuan_hoa_bien_so(bien_so)
-
-
-def sua_loi_theo_vi_tri_vn(bien_so):
-    """Sua loi nham ky tu dua theo vi tri bien VN.
-
-    Ho tro cac loai bien so:
-    - O to:      2 so + 1 chu + 5 so         = 8 ky tu  (VD: 51H59531)
-    - Xe may:    2 so + 1 chu + 6 so         = 9 ky tu  (VD: 36F504327)
-    - Dac biet:  2 so + 2 chu + 5 so         = 9 ky tu  (VD: 80CD12345)
-    - Xe may cu: 2 so + 1 chu + 1 so + 4 so  = 8 ky tu  (VD: 29N87258)
-    """
-    bs = chuan_hoa_bien_so(bien_so)
-
-    if len(bs) < 7:
-        return bs
-
-    chu_sang_so = {"O": "0", "Q": "0", "I": "1", "L": "1",
-                   "Z": "2", "S": "5", "B": "8", "G": "6"}
-    so_sang_chu = {"0": "D", "1": "I", "2": "Z", "5": "S", "6": "G", "8": "B"}
-
-    ky_tu = list(bs)
-
-    # Vi tri 0, 1: phai la so (ma tinh/thanh pho)
-    for i in (0, 1):
-        if not ky_tu[i].isdigit():
-            ky_tu[i] = chu_sang_so.get(ky_tu[i], ky_tu[i])
-
-    # Vi tri 2: phai la chu (seri)
-    if ky_tu[2].isdigit():
-        ky_tu[2] = so_sang_chu.get(ky_tu[2], ky_tu[2])
-
-    # Xac dinh vi tri bat dau cua phan so:
-    # Truong hop 2 chu lien tiep o vi tri 2-3 (VD: 80CD12345)
-    if len(ky_tu) >= 9 and ky_tu[3].isalpha():
-        bat_dau_so = 4
-    else:
-        # O to (8 ky tu) hoac xe may (9 ky tu): vi tri 3+ la so
-        bat_dau_so = 3
-
-    # Phan con lai: uu tien la so
-    for i in range(bat_dau_so, len(ky_tu)):
-        if not ky_tu[i].isdigit():
-            ky_tu[i] = chu_sang_so.get(ky_tu[i], ky_tu[i])
-
-    return "".join(ky_tu)
 
 
 # ============================================================
@@ -120,7 +158,15 @@ class NhanDienBienSo:
         # Load PaddleOCR
         if PaddleOCR:
             try:
-                self.ocr = PaddleOCR(use_angle_cls=False, lang="en", show_log=False)
+                # PaddleOCR 2.x dung show_log=False, 3.x da xoa tham so nay
+                try:
+                    self.ocr = PaddleOCR(use_angle_cls=False, lang="en", show_log=False)
+                except TypeError:
+                    # PaddleOCR 3.x: tat log bang logging module
+                    import logging
+                    logging.getLogger("ppocr").setLevel(logging.ERROR)
+                    logging.getLogger("paddleocr").setLevel(logging.ERROR)
+                    self.ocr = PaddleOCR(use_angle_cls=False, lang="en")
                 self.trang_thai += " | PaddleOCR OK"
             except Exception as e:
                 self.trang_thai += f" | PaddleOCR loi: {e}"
@@ -167,38 +213,10 @@ class NhanDienBienSo:
             return [anh]
 
     def _tao_anh_hien_thi_xu_ly(self, anh):
-        """Tao anh hien thi kieu demo: nen den, chu sang, de nhin ro bien so."""
-        if cv2 is None or np is None or anh is None or anh.size == 0:
+        """Tra ve anh YOLO crop goc de hien thi tren giao dien."""
+        if anh is None or (hasattr(anh, 'size') and anh.size == 0):
             return anh
-        try:
-            # Anh hien thi can sat tam bien so, khong lay ca dien thoai/tay/nen.
-            vung = self._cat_vung_bien_sang(anh)
-            if vung is None or vung.size == 0:
-                vung = self._tinh_chinh_bien_so(anh)
-                vung_sang = self._cat_vung_bien_sang(vung)
-                if vung_sang is not None and vung_sang.size > 0:
-                    vung = vung_sang
-            if vung is None or vung.size == 0:
-                vung = anh
-
-            xam = cv2.cvtColor(vung, cv2.COLOR_BGR2GRAY) if len(vung.shape) == 3 else vung
-            xam = cv2.GaussianBlur(xam, (3, 3), 0)
-            xam = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(xam)
-
-            # Adaptive threshold inverse: chu/duong vien toi -> trang, nen bien -> den.
-            block = max(15, (min(xam.shape[:2]) // 4) | 1)
-            nhi_phan = cv2.adaptiveThreshold(
-                xam, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY_INV, block, 7
-            )
-
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-            nhi_phan = cv2.morphologyEx(nhi_phan, cv2.MORPH_OPEN, kernel, iterations=1)
-            nhi_phan = self._cat_sat_anh_hien_thi(nhi_phan)
-
-            return cv2.cvtColor(nhi_phan, cv2.COLOR_GRAY2BGR)
-        except Exception:
-            return anh
+        return anh
 
     def _tao_anh_hien_thi_tu_ocr(self, anh, ocr_lines):
         """Cat anh theo vung chu OCR doc duoc roi tao anh nen den/chu trang.
@@ -253,205 +271,7 @@ class NhanDienBienSo:
         except Exception:
             return None
 
-    def _cat_vung_bien_sang(self, anh):
-        """Tim tam bien so mau sang ben trong crop YOLO de anh hien thi gon hon."""
-        if cv2 is None or np is None or anh is None or anh.size == 0:
-            return None
-        h, w = anh.shape[:2]
-        if h < 30 or w < 30:
-            return None
 
-        try:
-            xam = cv2.cvtColor(anh, cv2.COLOR_BGR2GRAY) if len(anh.shape) == 3 else anh.copy()
-            xam = cv2.GaussianBlur(xam, (5, 5), 0)
-            _, mask = cv2.threshold(xam, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-            kx = max(5, (w // 45) | 1)
-            ky = max(5, (h // 45) | 1)
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kx, ky))
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
-
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return None
-
-            total = h * w
-            best = None
-            best_score = -1.0
-            for cnt in contours:
-                x, y, bw, bh = cv2.boundingRect(cnt)
-                if bw <= 0 or bh <= 0:
-                    continue
-                area = bw * bh
-                area_ratio = area / total
-                ratio = bw / max(1, bh)
-                fill = cv2.contourArea(cnt) / max(1, area)
-
-                if area_ratio < 0.035 or area_ratio > 0.82:
-                    continue
-                if bw < w * 0.22 or bh < h * 0.18:
-                    continue
-                if ratio < 0.65 or ratio > 4.8:
-                    continue
-                if fill < 0.38:
-                    continue
-
-                cx = (x + bw / 2) / w
-                cy = (y + bh / 2) / h
-                center_score = 1.0 - min(1.0, abs(cx - 0.5) + abs(cy - 0.5))
-                bright_score = float(np.mean(xam[y:y + bh, x:x + bw])) / 255.0
-                ratio_score = 1.0 - min(1.0, abs(ratio - 1.65) / 3.0)
-                score = area_ratio * 2.0 + fill + center_score + bright_score + ratio_score
-                if score > best_score:
-                    best_score = score
-                    best = (x, y, bw, bh)
-
-            if best is None:
-                return None
-
-            x, y, bw, bh = best
-            pad_x = max(2, int(bw * 0.035))
-            pad_y = max(2, int(bh * 0.045))
-            x1 = max(0, x - pad_x)
-            y1 = max(0, y - pad_y)
-            x2 = min(w, x + bw + pad_x)
-            y2 = min(h, y + bh + pad_y)
-            if x2 <= x1 or y2 <= y1:
-                return None
-            return anh[y1:y2, x1:x2]
-        except Exception:
-            return None
-
-    def _cat_sat_anh_hien_thi(self, nhi_phan):
-        """Cat sat vung ky tu sang de anh demo khong dinh nen/khung thua."""
-        h, w = nhi_phan.shape[:2]
-        if h < 20 or w < 20:
-            return nhi_phan
-
-        contours, _ = cv2.findContours(nhi_phan, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        boxes = []
-        dien_tich = h * w
-        for cnt in contours:
-            x, y, bw, bh = cv2.boundingRect(cnt)
-            area = bw * bh
-            if area < dien_tich * 0.001:
-                continue
-            if bw > w * 0.75 and bh < h * 0.16:
-                continue
-            if bh < h * 0.08 and bw < w * 0.08:
-                continue
-            if area > dien_tich * 0.55:
-                continue
-            boxes.append((x, y, x + bw, y + bh))
-
-        if not boxes:
-            pts = cv2.findNonZero(nhi_phan)
-            if pts is None:
-                return nhi_phan
-            x, y, bw, bh = cv2.boundingRect(pts)
-            boxes = [(x, y, x + bw, y + bh)]
-
-        x1 = min(b[0] for b in boxes)
-        y1 = min(b[1] for b in boxes)
-        x2 = max(b[2] for b in boxes)
-        y2 = max(b[3] for b in boxes)
-
-        pad_x = max(4, int((x2 - x1) * 0.12))
-        pad_y = max(4, int((y2 - y1) * 0.18))
-        x1 = max(0, x1 - pad_x)
-        y1 = max(0, y1 - pad_y)
-        x2 = min(w, x2 + pad_x)
-        y2 = min(h, y2 + pad_y)
-
-        if x2 <= x1 or y2 <= y1:
-            return nhi_phan
-        if (x2 - x1) < w * 0.20 or (y2 - y1) < h * 0.20:
-            return nhi_phan
-        return nhi_phan[y1:y2, x1:x2]
-
-    def _tinh_chinh_bien_so(self, anh):
-        """Tim vung bien so trang ben trong YOLO crop, cat sat va xoay thang.
-
-        Buoc:
-        1. Chuyen xam, lam mo, nhi phan Otsu
-        2. Tim contour lon nhat co dang hinh chu nhat
-        3. Xoay thang (perspective transform)
-        4. Tra ve anh bien so sach
-
-        Neu khong tim thay contour phu hop -> tra ve anh goc.
-        """
-        if cv2 is None or np is None or anh is None or anh.size == 0:
-            return anh
-
-        h, w = anh.shape[:2]
-        if h < 10 or w < 10:
-            return anh
-
-        try:
-            xam = cv2.cvtColor(anh, cv2.COLOR_BGR2GRAY)
-            xam = cv2.equalizeHist(xam)
-            mo = cv2.GaussianBlur(xam, (5, 5), 0)
-            canh = cv2.Canny(mo, 60, 180)
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
-            nhi_phan = cv2.morphologyEx(canh, cv2.MORPH_CLOSE, kernel, iterations=2)
-
-            contours, _ = cv2.findContours(nhi_phan, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return anh
-
-            # Tim contour chu nhat phu hop bien so. Canny on dinh hon Otsu khi bi choi.
-            best = None
-            best_area = 0
-            for cnt in contours:
-                area = cv2.contourArea(cnt)
-                if area < h * w * 0.08:
-                    continue
-                rect = cv2.minAreaRect(cnt)
-                rw, rh = rect[1]
-                if rw == 0 or rh == 0:
-                    continue
-                ratio = max(rw, rh) / min(rw, rh)
-                if 1.15 < ratio < 6.5 and area > best_area:
-                    best = rect
-                    best_area = area
-
-            if best is None:
-                return anh
-
-            # Perspective transform de xoay thang
-            box_pts = cv2.boxPoints(best)
-            box_pts = np.intp(box_pts)
-
-            # Sap xep 4 goc: trai-tren, phai-tren, phai-duoi, trai-duoi
-            pts = box_pts.astype(np.float32)
-            s = pts.sum(axis=1)
-            d = np.diff(pts, axis=1)
-            tl = pts[np.argmin(s)]
-            br = pts[np.argmax(s)]
-            tr = pts[np.argmin(d)]
-            bl = pts[np.argmax(d)]
-            src = np.array([tl, tr, br, bl], dtype=np.float32)
-
-            # Kich thuoc dich
-            rw = int(max(np.linalg.norm(tr - tl), np.linalg.norm(br - bl)))
-            rh = int(max(np.linalg.norm(bl - tl), np.linalg.norm(br - tr)))
-            if rw < 20 or rh < 10:
-                return anh
-
-            dst = np.array([[0, 0], [rw, 0], [rw, rh], [0, rh]], dtype=np.float32)
-            M = cv2.getPerspectiveTransform(src, dst)
-            warped = cv2.warpPerspective(anh, M, (rw, rh))
-
-            # Kiem tra huong: neu dung (cao > ngang), xoay 90 do
-            wh, ww = warped.shape[:2]
-            if wh > ww:
-                warped = cv2.rotate(warped, cv2.ROTATE_90_CLOCKWISE)
-
-            return warped
-
-        except Exception:
-            return anh
 
     def _tien_xu_ly(self, anh):
         """Tao cac bien the OCR nhanh va da duoc do tot nhat: goc, CLAHE, Otsu."""
@@ -467,29 +287,14 @@ class NhanDienBienSo:
             cv2.cvtColor(otsu, cv2.COLOR_GRAY2BGR),
         ]
 
-    def _diem_hop_le(self, bien_so):
-        """Cham diem bien so theo format VN.
-
-        Diem cao = dung format bien so Viet Nam.
-        Day la phan TU VIET - dua tren quy tac bien so VN.
-
-        Cac format hop le:
-        - O to:      2 so + 1 chu + 5 so  = 8 ky tu  (51H59531)
-        - Xe may:    2 so + 1 chu + 6 so  = 9 ky tu  (36F504327)
-        - Dac biet:  2 so + 2 chu + 5 so  = 9 ky tu  (80CD12345)
-        """
-        bs = bien_so
-        if re.fullmatch(r"\d{2}[A-Z]\d{5}", bs):
-            return 1.0   # Hoan hao: o to (51H59531)
-        if re.fullmatch(r"\d{2}[A-Z]\d{6}", bs):
-            return 1.0   # Hoan hao: xe may (36F504327)
-        if re.fullmatch(r"\d{2}[A-Z]{2}\d{5}", bs):
-            return 1.0   # Hoan hao: bien dac biet (80CD12345)
-        if re.fullmatch(r"\d{2}[A-Z]{1,2}\d{4,6}", bs):
-            return 0.9   # Tot: bien hop le
-        if re.fullmatch(r"[A-Z0-9]{7,10}", bs):
-            return 0.5   # Chap nhan: dung do dai nhung khong ro format
-        return 0.0
+    def _thu_hang_ung_vien(self, valid, so_sua, so_lan, best_conf):
+        """Thu hang ung vien theo quy tac da chot cho do an."""
+        return (
+            1 if valid else 0,
+            -int(so_sua),
+            int(so_lan),
+            float(best_conf),
+        )
 
     def nhan_dien(self, anh):
         """Nhan dien bien so tu anh (numpy array BGR).
@@ -513,11 +318,9 @@ class NhanDienBienSo:
         anh_hien_thi = None
 
         # Buoc 2+3+4: Tien xu ly + OCR + Hau xu ly
-        diem_bs = {}  # {bien_so: diem}
-        diem_hien_thi_tot_nhat = -1.0
+        ung_vien = {}
 
         def thu_ocr(ds_anh, vung_goc):
-            nonlocal anh_hien_thi, diem_hien_thi_tot_nhat
             co_ket_qua = False
             for img in ds_anh:
                 try:
@@ -537,29 +340,38 @@ class NhanDienBienSo:
                         continue
                     avg_conf /= len(texts)
 
-                    # Noi tat ca cac dong lai
-                    full_text = "".join(texts)
+                    # Moi anh tien xu ly chi sinh 1 ung vien dai dien
+                    raw_text = "".join(texts)
+                    normalized = chuan_hoa_bien_so(raw_text)
+                    if not normalized:
+                        continue
 
-                    # Cac ung vien co the la toan bo chuoi noi lai, hoac tung dong rieng le
-                    candidates = [full_text] + texts
+                    fixed = sua_loi_theo_vi_tri_vn(normalized)
+                    if not fixed:
+                        continue
 
-                    for text in candidates:
-                        bs = chuan_hoa_bien_so(text)
-                        if len(bs) < 7 or len(bs) > 10:
-                            continue
-                        # Hau xu ly VN (tu viet)
-                        bs = sua_loi_theo_vi_tri_vn(bs)
-                        # Uu tien nhe ket qua 9 ky tu khi diem format/confidence ngang nhau,
-                        # vi bien 2 dong xe may demo thuong bi mat 1 so khi crop sat mep.
-                        length_bonus = 0.04 if len(bs) == 9 else (0.01 if len(bs) == 8 else 0.0)
-                        diem = avg_conf + self._diem_hop_le(bs) + length_bonus
-                        if diem > diem_bs.get(bs, -1):
-                            diem_bs[bs] = diem
-                            anh_ocr = self._tao_anh_hien_thi_tu_ocr(vung_goc, kq[0])
-                            if anh_ocr is not None and diem > diem_hien_thi_tot_nhat:
-                                anh_hien_thi = anh_ocr
-                                diem_hien_thi_tot_nhat = diem
-                            co_ket_qua = True
+                    valid = la_bien_so_hop_cau_truc(fixed)
+                    so_sua = dem_so_ky_tu_da_sua(normalized, fixed)
+                    anh_ocr = self._tao_anh_hien_thi_tu_ocr(vung_goc, kq[0])
+
+                    info = ung_vien.get(fixed)
+                    if info is None:
+                        ung_vien[fixed] = {
+                            "valid": valid,
+                            "so_sua": so_sua,
+                            "so_lan": 1,
+                            "best_conf": avg_conf,
+                            "anh": anh_ocr,
+                        }
+                    else:
+                        info["valid"] = info["valid"] or valid
+                        info["so_sua"] = min(int(info["so_sua"]), so_sua)
+                        info["so_lan"] = int(info["so_lan"]) + 1
+                        if avg_conf > float(info["best_conf"]):
+                            info["best_conf"] = avg_conf
+                            if anh_ocr is not None:
+                                info["anh"] = anh_ocr
+                    co_ket_qua = True
                 except Exception:
                     continue
             return co_ket_qua
@@ -572,8 +384,16 @@ class NhanDienBienSo:
 
             thu_ocr(self._tien_xu_ly(vung), vung)
 
-        if not diem_bs:
+        if not ung_vien:
             return None, anh_hien_thi
 
-        # Buoc 5: Chon bien so co diem cao nhat
-        return max(diem_bs.items(), key=lambda x: x[1])[0], anh_hien_thi
+        # Buoc 5: Chon bien so theo thu tu uu tien da chot
+        bien_so, info = max(
+            ung_vien.items(),
+            key=lambda item: self._thu_hang_ung_vien(
+                item[1]["valid"], item[1]["so_sua"], item[1]["so_lan"], item[1]["best_conf"]
+            ),
+        )
+        if info.get("anh") is not None:
+            anh_hien_thi = info["anh"]
+        return bien_so, anh_hien_thi

@@ -1,0 +1,18 @@
+﻿chi_so,gia_tri,hien_thi
+Tổng số ảnh,200.0,
+Đúng hoàn toàn,195.0,97.50%
+Sai,5.0,2.50%
+Accuracy cấp biển số,0.975,97.50%
+Accuracy cấp ký tự,0.9856201318154584,98.56%
+CER,0.014379868184541641,1.44%
+Tổng ký tự nhãn đúng,1669.0,1669
+Tổng lỗi ký tự,24.0,24
+YOLO phát hiện vùng biển số,0.995,99.50%
+OCR đọc được ít nhất một chuỗi,0.995,99.50%
+Tạo được ứng viên,0.995,99.50%
+Có ứng viên đúng trong danh sách,0.98,98.00%
+Chọn đúng khi ứng viên đúng tồn tại,0.9948979591836735,99.49%
+Kết quả cuối hợp cấu trúc,0.985,98.50%
+Thời gian trung bình,618.9480730004288,619 ms
+Thời gian trung vị,589.8315000013099,590 ms
+Số ảnh lệch với hàm nhan_dien() gốc,0.0,0
