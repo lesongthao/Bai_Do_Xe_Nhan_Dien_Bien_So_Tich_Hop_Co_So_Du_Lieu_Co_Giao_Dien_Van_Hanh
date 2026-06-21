@@ -1,0 +1,11 @@
+numpy
+opencv-python
+pillow
+pandas
+matplotlib
+pyserial
+ultralytics
+paddleocr
+paddlepaddle
+notebook
+nbformat
