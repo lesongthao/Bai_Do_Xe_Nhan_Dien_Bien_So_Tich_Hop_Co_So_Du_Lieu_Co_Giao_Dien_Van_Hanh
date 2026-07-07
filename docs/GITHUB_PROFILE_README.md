@@ -1,3 +1,5 @@
+<a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F766E,100:2563EB&height=190&section=header&text=LE%20SONG%20THAO&fontSize=45&fontColor=ffffff&animation=fadeIn" alt="Le Song Thao profile banner" /></a>
+
 # Hi, I'm Le Song Thao
 
 Fresher Embedded / IoT / Computer Vision enthusiast.
@@ -28,6 +30,8 @@ Built a smart parking prototype that detects vehicles, recognizes license plates
 - Achieved **97.50% plate-level accuracy** on 200 labeled test images.
 
 ## Skills
+
+<a href="#skills"><img src="https://skillicons.dev/icons?i=c,cpp,py,arduino,opencv,sqlite,git,github,vscode" alt="Skill icons" /></a>
 
 **Embedded / IoT**
 
@@ -64,3 +68,4 @@ Built a smart parking prototype that detects vehicles, recognizes license plates
 - Email: songthao2412@gmail.com
 - GitHub: [github.com/lesongthao](https://github.com/lesongthao)
 
+<a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563EB,100:0F766E&height=90&section=footer" alt="Footer banner" /></a>

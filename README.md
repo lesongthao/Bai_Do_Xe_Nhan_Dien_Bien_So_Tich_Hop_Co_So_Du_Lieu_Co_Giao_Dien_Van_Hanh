@@ -1,3 +1,5 @@
+<a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F766E,100:2563EB&height=220&section=header&text=SMART%20PARKING%20SYSTEM&fontSize=42&fontColor=ffffff&animation=fadeIn" alt="Smart Parking System banner" /></a>
+
 # Smart Parking System with License Plate Recognition
 
 > Embedded + Computer Vision graduation project using Arduino Uno R3, Python, YOLOv8n, PaddleOCR, OpenCV, SQLite, and Tkinter.
@@ -8,6 +10,22 @@
 <a href="#readme"><img src="https://img.shields.io/badge/YOLOv8n-Detection-111111?style=flat-square" alt="YOLOv8n" /></a>
 <a href="#readme"><img src="https://img.shields.io/badge/PaddleOCR-OCR-0062B8?style=flat-square" alt="PaddleOCR" /></a>
 <a href="#readme"><img src="https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" /></a>
+
+## <a name="table-of-contents"></a>Table of Contents
+
+- [Overview](#overview)
+- [Project Highlights](#project-highlights)
+- [Results & Metrics](#results)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#architecture)
+- [Recognition Pipeline](#recognition-pipeline)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Hardware Setup](#hardware-setup)
+- [Database](#database)
+- [Troubleshooting](#troubleshooting)
+- [Author](#author)
 
 ## <a name="overview"></a>Overview
 
@@ -41,6 +59,8 @@ The project was designed as an integrated embedded/software system instead of a 
 ### Full Recognition Pipeline Evaluation
 
 The complete recognition module was evaluated on 200 manually labeled Vietnamese license plate images.
+
+**Google XYZ summary:** Achieved **97.50% plate-level accuracy**, measured on **200 manually labeled license plate images**, by combining **YOLOv8n region detection, OpenCV preprocessing, PaddleOCR, and Vietnamese plate-specific post-processing**.
 
 | Metric | Value |
 |---|---:|
@@ -77,6 +97,8 @@ danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
 - Tkinter UI for live camera preview, plate result, parking capacity, barrier state, and logs.
 
 ## <a name="tech-stack"></a>Tech Stack
+
+<a href="#tech-stack"><img src="https://skillicons.dev/icons?i=py,opencv,sqlite,arduino,git,github,vscode" alt="Tech stack icons" /></a>
 
 | Area | Technologies |
 |---|---|
@@ -280,6 +302,8 @@ danh_gia_module_nhan_dien_bien_so/
 Engineering degree - Electronics and Telecommunications Engineering<br>
 Major: Industrial Electronics and Informatics<br>
 Graduation thesis score: **9.6/10**
+
+<a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563EB,100:0F766E&height=110&section=footer" alt="Footer banner" /></a>
 
 ## <a name="license"></a>License
 
