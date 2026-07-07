@@ -52,6 +52,7 @@ Kết quả train Yolov8n/**/weights/best.pt
 .$*.drawio.bkp
 *.tmp
 *.temp
+cv_page_*.png
 
 # Generated reports/large backups
 backup_project.zip

@@ -1,89 +1,145 @@
-# Đồ Án Tốt Nghiệp: Thiết kế và xây dựng hệ bãi đỗ xe thông minh có chức năng nhận diện biển số, quản lý và lưu trữ cơ sở dữ liệu, có giao diện vận hành.
+# Smart Parking System with License Plate Recognition
 
-Đồ án xây dựng mô hình bãi đỗ xe thông minh có khả năng phát hiện xe, nhận diện biển số, kiểm tra dữ liệu xe vào/ra và điều khiển barie bằng Arduino Uno R3.
+> Embedded + Computer Vision graduation project using Arduino Uno R3, Python, YOLOv8n, PaddleOCR, OpenCV, SQLite, and Tkinter.
 
-## Tác giả
+<a href="#readme"><img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
+<a href="#readme"><img src="https://img.shields.io/badge/Arduino-Uno_R3-00979D?style=flat-square&logo=arduino&logoColor=white" alt="Arduino Uno R3" /></a>
+<a href="#readme"><img src="https://img.shields.io/badge/OpenCV-Computer_Vision-5C3EE8?style=flat-square&logo=opencv&logoColor=white" alt="OpenCV" /></a>
+<a href="#readme"><img src="https://img.shields.io/badge/YOLOv8n-Detection-111111?style=flat-square" alt="YOLOv8n" /></a>
+<a href="#readme"><img src="https://img.shields.io/badge/PaddleOCR-OCR-0062B8?style=flat-square" alt="PaddleOCR" /></a>
+<a href="#readme"><img src="https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" /></a>
 
-- **Sinh viên thực hiện:** Lê Sông Thao
-- **Lớp:** Kỹ thuật Điện tử - Tin học Công nghiệp 2 - K62 - Trường Đại học Giao thông vận tải
-- **Giảng viên hướng dẫn:** TS. Nguyễn Thúy Bình
-- **Đề tài:** Thiết kế và xây dựng hệ thống quản lý bãi đỗ xe thông minh sử dụng Arduino Uno R3
+## <a name="overview"></a>Overview
 
-## Chức năng chính
+This project is a smart parking management prototype built for my engineering graduation thesis. The system detects vehicles at the entry/exit gates, captures camera images, recognizes Vietnamese license plates, validates vehicle data in SQLite, controls barrier servos through Arduino Uno R3, and displays live operating status on a Tkinter desktop UI.
 
-- Phát hiện xe tại cổng vào và cổng ra bằng cảm biến hồng ngoại LM393.
-- Chụp ảnh từ camera USB khi có xe hoặc khi người dùng thao tác thủ công.
-- Nhận diện biển số bằng pipeline `YOLOv8n -> OpenCV -> PaddleOCR -> hậu xử lý`.
-- Kiểm tra biển số với cơ sở dữ liệu SQLite.
-- Điều khiển 2 servo mô phỏng barie cổng vào và cổng ra qua Arduino Uno R3.
-- Lưu danh sách xe trong bãi và lịch sử ra/vào.
-- Hiển thị camera, kết quả nhận diện, trạng thái bãi xe và nhật ký trên giao diện Tkinter.
+The project was designed as an integrated embedded/software system instead of a standalone AI demo. It combines sensors, actuator control, serial communication, computer vision, OCR, database management, and an operator interface.
 
-## Luồng xử lý tổng quát
+## <a name="project-highlights"></a>Project Highlights
+
+- Built Arduino Uno R3 firmware to read LM393 infrared sensors and control servo barriers.
+- Implemented UART/Serial communication between the PC application and Arduino.
+- Integrated USB camera capture with a Python desktop application.
+- Developed a license plate recognition pipeline using YOLOv8n, OpenCV, PaddleOCR, and post-processing.
+- Designed an SQLite database for valid plates, parked vehicles, settings, and entry/exit history.
+- Built a Tkinter UI for camera preview, recognition result, parking status, COM connection, and system logs.
+- Evaluated the recognition module on 200 labeled images and achieved 97.50% plate-level accuracy.
+
+## <a name="results"></a>Results & Metrics
+
+### YOLOv8n License Plate Detection
+
+| Metric | Value |
+|---|---:|
+| Precision | 99.18% |
+| Recall | 99.43% |
+| mAP50 | 99.48% |
+| mAP50-95 | 72.74% |
+| Epochs | 100 |
+| Image size | 640 |
+
+### Full Recognition Pipeline Evaluation
+
+The complete recognition module was evaluated on 200 manually labeled Vietnamese license plate images.
+
+| Metric | Value |
+|---|---:|
+| Total images | 200 |
+| Fully correct predictions | 195/200 |
+| Plate-level accuracy | 97.50% |
+| Character-level accuracy | 98.56% |
+| CER | 1.44% |
+| YOLO detected plate region | 99.50% |
+| OCR produced at least one text candidate | 99.50% |
+| Average processing time | 619 ms/image |
+
+Evaluation artifacts are available in:
 
 ```text
-LM393 phát hiện xe
-        ↓
-Arduino Uno R3 đọc cảm biến
-        ↓ Serial
-Module giao tiếp Arduino
-        ↓
-Module điều phối hệ thống
-        ↓
-Module nhận diện biển số + Module quản lý CSDL
-        ↓
-Quyết định mở/không mở barie
-        ↓ Serial
-Arduino Uno R3 điều khiển servo
-        ↓
-Cập nhật SQLite và nhật ký vận hành
+danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
 ```
 
-## Module nhận diện biển số
+![Recognition KPI dashboard](danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/anh_bao_cao/01_dashboard_kpi.png)
 
-- **YOLOv8n** chỉ phát hiện vùng biển số, không đọc ký tự.
-- **OpenCV** cắt vùng biển số và tạo 3 biến thể ảnh: ảnh gốc, ảnh CLAHE và ảnh Otsu.
-- **PaddleOCR** đọc chuỗi ký tự từ từng biến thể ảnh. PaddleOCR dùng mô hình pretrained, không fine-tune lại.
-- **Hậu xử lý biển số** chuẩn hóa chuỗi, sửa lỗi OCR theo vị trí ký tự, kiểm tra cấu trúc biển số và chọn ứng viên tốt nhất.
+## <a name="features"></a>Features
 
-Model chạy chính thức:
+- Entry and exit vehicle detection using LM393 infrared sensors.
+- Automatic and manual operation modes.
+- USB camera capture for both entry and exit gates.
+- YOLOv8n-based license plate region detection.
+- OpenCV preprocessing with original, CLAHE, and Otsu variants.
+- PaddleOCR-based character recognition.
+- Vietnamese license plate post-processing and candidate ranking.
+- Whitelist validation for entry vehicles.
+- Exit validation against vehicles currently inside the parking lot.
+- SQLite storage for valid plates, parked vehicles, settings, and history.
+- Servo barrier control through Arduino commands.
+- Tkinter UI for live camera preview, plate result, parking capacity, barrier state, and logs.
+
+## <a name="tech-stack"></a>Tech Stack
+
+| Area | Technologies |
+|---|---|
+| Embedded | Arduino Uno R3, C/C++ Arduino, LM393 sensors, SG90 servos |
+| Communication | UART/Serial, pyserial |
+| Application | Python, Tkinter, threading, queue |
+| Computer Vision | OpenCV, YOLOv8n, Ultralytics |
+| OCR | PaddleOCR, PaddlePaddle |
+| Database | SQLite |
+| Training/Evaluation | Google Colab, pandas, matplotlib, Jupyter Notebook |
+
+## <a name="architecture"></a>System Architecture
+
+```mermaid
+flowchart TD
+    A[LM393 sensors] --> B[Arduino Uno R3]
+    B -->|Serial: sensor state| C[Python controller]
+    C --> D[USB cameras]
+    D --> E[YOLOv8n plate detection]
+    E --> F[OpenCV preprocessing]
+    F --> G[PaddleOCR]
+    G --> H[Plate post-processing and candidate ranking]
+    H --> I[SQLite validation]
+    I --> J{Open barrier?}
+    J -->|Entry allowed| K[Send VAO_MO / VAO_DONG]
+    J -->|Exit allowed| L[Send RA_MO / RA_DONG]
+    K --> B
+    L --> B
+    I --> M[Update parked vehicles and history]
+    C --> N[Tkinter operator UI]
+    M --> N
+```
+
+## <a name="recognition-pipeline"></a>Recognition Pipeline
 
 ```text
-mo_hinh/bien_so_yolo.pt
+Input frame
+  -> YOLOv8n detects license plate region
+  -> OpenCV crops the plate area
+  -> Create three OCR variants: original, CLAHE, Otsu
+  -> PaddleOCR reads text candidates
+  -> Normalize A-Z/0-9 characters
+  -> Fix common OCR errors by Vietnamese plate character position
+  -> Validate plate structure
+  -> Rank candidates by structure validity, edit count, frequency, and OCR confidence
+  -> Return final plate result
 ```
 
-## Cấu trúc thư mục
+YOLO is used only for plate region detection. It does not read characters. Character recognition is handled by PaddleOCR and the final result is selected by custom post-processing in `nhan_dien_bien_so.py`.
 
-```text
-.
-├── giao_dien_chinh.py                 # Giao diện chính Tkinter
-├── dieu_khien_he_thong.py             # Điều phối camera, AI, CSDL và Arduino
-├── nhan_dien_bien_so.py               # Module nhận diện biển số
-├── quan_ly_du_lieu.py                 # Module quản lý SQLite
-├── giao_tiep_arduino.py               # Giao tiếp Serial với Arduino
-├── mo_hinh/
-│   └── bien_so_yolo.pt                # Model YOLOv8n dùng khi chạy hệ thống
-├── phan_cung_arduino/
-│   └── dieu_khien_barie_lm393/
-│       └── dieu_khien_barie_lm393.ino # Firmware Arduino
-├── dataset_train_yolov8n/             # Metadata dataset train YOLOv8n
-├── Kết quả train Yolov8n/             # Kết quả và báo cáo huấn luyện YOLO
-└── danh_gia_module_nhan_dien_bien_so/ # Notebook, dataset 200 ảnh và kết quả đánh giá module
-```
+## <a name="quick-start"></a>Quick Start
 
-## Cài đặt
+### Requirements
 
-Yêu cầu khuyến nghị:
-
-- Python 3.10 hoặc mới hơn
+- Python 3.10 or newer
 - Arduino IDE
-- Camera USB
 - Arduino Uno R3
-- 2 cảm biến LM393
-- 2 servo SG90
-- Nguồn ngoài 5V cho servo
+- USB camera
+- 2 LM393 infrared sensors
+- 2 SG90 servos
+- External 5V supply for servos is recommended
 
-Cài thư viện Python:
+### Install Python Dependencies
 
 ```powershell
 python -m venv .venv
@@ -91,89 +147,140 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Chạy hệ thống
+### Upload Arduino Firmware
 
-1. Nạp firmware Arduino:
+Open and upload:
 
 ```text
 phan_cung_arduino/dieu_khien_barie_lm393/dieu_khien_barie_lm393.ino
 ```
 
-2. Kết nối camera USB và Arduino với máy tính.
-
-3. Chạy giao diện:
+### Run the Desktop Application
 
 ```powershell
 python giao_dien_chinh.py
 ```
 
-4. Trên giao diện, chọn cổng COM của Arduino, kết nối và vận hành ở chế độ tự động hoặc thủ công.
+On the UI:
 
-## Cơ sở dữ liệu
+1. Select the Arduino COM port.
+2. Connect to Arduino.
+3. Select camera indexes for entry and exit gates.
+4. Add valid license plates to the whitelist.
+5. Operate in automatic or manual mode.
 
-Hệ thống sử dụng SQLite. File cơ sở dữ liệu runtime là:
+## <a name="project-structure"></a>Project Structure
+
+```text
+.
+├── giao_dien_chinh.py                 # Tkinter operator interface
+├── dieu_khien_he_thong.py             # Main controller: camera, AI, DB, Arduino
+├── nhan_dien_bien_so.py               # YOLO + OpenCV + PaddleOCR recognition module
+├── quan_ly_du_lieu.py                 # SQLite database manager
+├── giao_tiep_arduino.py               # Serial communication with Arduino
+├── requirements.txt                   # Python dependencies
+├── mo_hinh/
+│   └── bien_so_yolo.pt                # Runtime YOLOv8n model
+├── phan_cung_arduino/
+│   └── dieu_khien_barie_lm393/
+│       └── dieu_khien_barie_lm393.ino # Arduino firmware
+├── dataset_train_yolov8n/             # YOLO dataset metadata
+├── Kết quả train Yolov8n/             # YOLO training report and artifacts
+└── danh_gia_module_nhan_dien_bien_so/ # 200-image evaluation notebook and results
+```
+
+## <a name="hardware-setup"></a>Hardware Setup
+
+| Component | Role |
+|---|---|
+| Arduino Uno R3 | Reads sensors and controls servo barriers |
+| LM393 sensor at entry | Detects vehicle at entry gate |
+| LM393 sensor at exit | Detects vehicle at exit gate |
+| SG90 servo at entry | Simulates entry barrier |
+| SG90 servo at exit | Simulates exit barrier |
+| USB camera | Captures vehicle/plate image |
+| PC/laptop | Runs recognition, database, UI, and system controller |
+
+Arduino firmware uses these command messages:
+
+| Command | Meaning |
+|---|---|
+| `VAO_MO` | Open entry barrier |
+| `VAO_DONG` | Close entry barrier |
+| `RA_MO` | Open exit barrier |
+| `RA_DONG` | Close exit barrier |
+| `PING` | Handshake check |
+| `TRANG_THAI` | Request sensor state |
+
+Arduino sends sensor messages in this format:
+
+```text
+CAM_BIEN:xe_vao=1,xe_ra=0
+```
+
+## <a name="database"></a>Database
+
+The runtime database is SQLite:
 
 ```text
 co_so_du_lieu_bai_xe.db
 ```
 
-Các bảng chính:
+Main tables:
 
-- `bien_so_hop_le`: danh sách biển số được phép vào bãi.
-- `xe_trong_bai`: danh sách xe đang ở trong bãi.
-- `lich_su_ra_vao`: lịch sử xe vào và xe ra.
-- `cai_dat`: cấu hình hệ thống, ví dụ sức chứa bãi.
+| Table | Purpose |
+|---|---|
+| `bien_so_hop_le` | Valid/whitelisted license plates |
+| `xe_trong_bai` | Vehicles currently inside the parking lot |
+| `lich_su_ra_vao` | Entry/exit history |
+| `cai_dat` | System settings such as capacity |
 
-File `.db` là dữ liệu runtime nên được bỏ qua khi push GitHub.
+Runtime `.db` files are ignored by Git.
 
-## Kết quả huấn luyện YOLOv8n
+## <a name="training-evaluation"></a>Training & Evaluation Notes
 
-Mô hình YOLOv8n được train cho bài toán **một lớp**, trong đó lớp `0` là vùng biển số xe.
+YOLOv8n was trained as a one-class object detector. Class `0` represents the license plate region.
 
-Thống kê dataset train:
+Training dataset metadata:
 
-| Tập dữ liệu | Số ảnh | Số file nhãn | Tổng số bounding box |
+| Split | Images | Label files | Bounding boxes |
 |---|---:|---:|---:|
 | Train | 5845 | 5845 | 5989 |
 | Valid | 1680 | 1680 | 1710 |
 | Test | 832 | 832 | 849 |
-| Tổng | 8357 | 8357 | 8548 |
+| Total | 8357 | 8357 | 8548 |
 
-Kết quả huấn luyện:
-
-| Chỉ số | Giá trị |
-|---|---:|
-| Precision | 99.18% |
-| Recall | 99.43% |
-| mAP50 | 99.48% |
-| mAP50-95 | 72.74% |
-
-## Kết quả đánh giá module nhận diện
-
-Module nhận diện được đánh giá trên tập 200 ảnh đã gán nhãn biển số đúng thủ công.
-
-| Chỉ số | Giá trị |
-|---|---:|
-| Đúng hoàn toàn | 195/200 |
-| Accuracy cấp biển số | 97.50% |
-| Accuracy cấp ký tự | 98.56% |
-| CER | 1.44% |
-| YOLO phát hiện vùng biển số | 99.50% |
-| OCR đọc được ít nhất một chuỗi | 99.50% |
-
-Các kết quả chi tiết nằm trong:
+Training documents:
 
 ```text
-danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
+Kết quả train Yolov8n/
+dataset_train_yolov8n/data.yaml
 ```
 
-## Ghi chú khi đưa lên GitHub
+Full recognition evaluation:
 
-- Raw dataset train YOLOv8n có nhiều ảnh nên đã được đưa vào `.gitignore`.
-- Model chạy chính thức nằm tại `mo_hinh/bien_so_yolo.pt`.
-- File cơ sở dữ liệu runtime `.db`, cache, file khóa Word và notebook checkpoint không nên commit.
-- Nếu cần tái lập huấn luyện YOLO, xem tài liệu trong `Kết quả train Yolov8n/` và `dataset_train_yolov8n/data.yaml`.
+```text
+danh_gia_module_nhan_dien_bien_so/
+```
 
-## Giấy phép và phạm vi sử dụng
+## <a name="troubleshooting"></a>Troubleshooting
 
-Dự án được xây dựng cho mục đích học tập, nghiên cứu và trình diễn mô hình đồ án tốt nghiệp. Khi sử dụng lại dataset hoặc model, cần kiểm tra giấy phép của nguồn dữ liệu tương ứng.
+| Problem | Suggested check |
+|---|---|
+| No COM port appears | Install Arduino driver, reconnect USB cable, reopen the app |
+| Arduino does not connect | Check firmware upload and confirm `KHOI_DONG_OK`/`PONG` handshake |
+| Camera cannot open | Try another camera index or close other apps using the camera |
+| First AI inference is slow | YOLO/PaddleOCR warm-up can take a few seconds |
+| Servo is unstable | Use an external 5V power supply for servos |
+| Plate not recognized | Improve lighting, camera angle, plate distance, or add more difficult samples |
+
+## <a name="author"></a>Author
+
+**Le Song Thao**<br>
+Engineering degree - Electronics and Telecommunications Engineering<br>
+Major: Industrial Electronics and Informatics<br>
+Graduation thesis score: **9.6/10**
+
+## <a name="license"></a>License
+
+This project was built for academic research, learning, and graduation thesis demonstration. If reusing datasets or model weights, please check the license of each original data source.
