@@ -1,3 +1,4 @@
+<a id="readme"></a>
 <a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F766E,100:2563EB&height=220&section=header&text=SMART%20PARKING%20SYSTEM&fontSize=42&fontColor=ffffff&animation=fadeIn" alt="Smart Parking System banner" /></a>
 
 # Smart Parking System with License Plate Recognition
@@ -10,10 +11,13 @@
 <a href="#readme"><img src="https://img.shields.io/badge/YOLOv8n-Detection-111111?style=flat-square" alt="YOLOv8n" /></a>
 <a href="#readme"><img src="https://img.shields.io/badge/PaddleOCR-OCR-0062B8?style=flat-square" alt="PaddleOCR" /></a>
 <a href="#readme"><img src="https://img.shields.io/badge/SQLite-Database-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-111827?style=flat-square" alt="MIT License" /></a>
 
-## <a name="table-of-contents"></a>Table of Contents
+## <a name="table-of-contents"></a> Table of Contents
 
 - [Overview](#overview)
+- [Goals & Scope](#goals--scope)
+- [Demo Gallery](#demo-gallery)
 - [Project Highlights](#project-highlights)
 - [Results & Metrics](#results)
 - [Features](#features)
@@ -24,16 +28,49 @@
 - [Project Structure](#project-structure)
 - [Hardware Setup](#hardware-setup)
 - [Database](#database)
+- [Training & Evaluation Notes](#training-evaluation)
+- [Operation Test Results](#operation-test-results)
+- [Limitations & Roadmap](#limitations--roadmap)
 - [Troubleshooting](#troubleshooting)
 - [Author](#author)
+- [License](#license)
 
-## <a name="overview"></a>Overview
+## <a name="overview"></a> Overview
 
 This project is a smart parking management prototype built for my engineering graduation thesis. The system detects vehicles at the entry/exit gates, captures camera images, recognizes Vietnamese license plates, validates vehicle data in SQLite, controls barrier servos through Arduino Uno R3, and displays live operating status on a Tkinter desktop UI.
 
 The project was designed as an integrated embedded/software system instead of a standalone AI demo. It combines sensors, actuator control, serial communication, computer vision, OCR, database management, and an operator interface.
 
-## <a name="project-highlights"></a>Project Highlights
+## <a name="goals--scope"></a> Goals & Scope
+
+| Area | Implementation scope |
+|---|---|
+| Parking model | 2-gate prototype with entry and exit barriers |
+| Operation modes | Automatic and manual operation |
+| Hardware scope | Arduino Uno R3, LM393 sensors, SG90 servos, USB camera |
+| Software scope | Python desktop application, SQLite database, YOLOv8n + PaddleOCR recognition |
+| Safety behavior | Barrier closes after the vehicle has passed the sensor |
+| Not included | Payment, web/mobile monitoring, industrial-grade barrier hardware |
+
+## <a name="demo-gallery"></a> Demo Gallery
+
+| Desktop operator UI | Hardware prototype |
+|---|---|
+| ![Desktop operator UI](docs/images/ui-desktop-operation.png) | ![Hardware prototype](docs/images/hardware-prototype.jpg) |
+
+| System operation flow | Software module architecture |
+|---|---|
+| ![System operation flow](docs/images/operation-flow.png) | ![Software module architecture](docs/images/software-module-architecture.png) |
+
+| Hardware wiring diagram | Database module architecture |
+|---|---|
+| ![Hardware wiring diagram](docs/images/hardware-wiring-diagram.png) | ![Database module architecture](docs/images/database-module-architecture.png) |
+
+| Recognition workflow | OpenCV preprocessing variants |
+|---|---|
+| ![Recognition workflow](docs/images/recognition-workflow.png) | ![OpenCV preprocessing variants](docs/images/opencv-preprocessing-variants.png) |
+
+## <a name="project-highlights"></a> Project Highlights
 
 - Built Arduino Uno R3 firmware to read LM393 infrared sensors and control servo barriers.
 - Implemented UART/Serial communication between the PC application and Arduino.
@@ -42,8 +79,9 @@ The project was designed as an integrated embedded/software system instead of a 
 - Designed an SQLite database for valid plates, parked vehicles, settings, and entry/exit history.
 - Built a Tkinter UI for camera preview, recognition result, parking status, COM connection, and system logs.
 - Evaluated the recognition module on 200 labeled images and achieved 97.50% plate-level accuracy.
+- Verified end-to-end parking scenarios: valid entry, invalid entry, duplicate entry prevention, valid exit, failed recognition handling, and sensor-triggered capture.
 
-## <a name="results"></a>Results & Metrics
+## <a name="results"></a> Results & Metrics
 
 ### YOLOv8n License Plate Detection
 
@@ -53,6 +91,7 @@ The project was designed as an integrated embedded/software system instead of a 
 | Recall | 99.43% |
 | mAP50 | 99.48% |
 | mAP50-95 | 72.74% |
+| Training time | 3 hours 13 minutes |
 | Epochs | 100 |
 | Image size | 640 |
 
@@ -81,7 +120,7 @@ danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
 
 ![Recognition KPI dashboard](danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/anh_bao_cao/01_dashboard_kpi.png)
 
-## <a name="features"></a>Features
+## <a name="features"></a> Features
 
 - Entry and exit vehicle detection using LM393 infrared sensors.
 - Automatic and manual operation modes.
@@ -96,7 +135,7 @@ danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
 - Servo barrier control through Arduino commands.
 - Tkinter UI for live camera preview, plate result, parking capacity, barrier state, and logs.
 
-## <a name="tech-stack"></a>Tech Stack
+## <a name="tech-stack"></a> Tech Stack
 
 <a href="#tech-stack"><img src="https://skillicons.dev/icons?i=py,opencv,sqlite,arduino,git,github,vscode" alt="Tech stack icons" /></a>
 
@@ -110,7 +149,7 @@ danh_gia_module_nhan_dien_bien_so/ket_qua_danh_gia_200/
 | Database | SQLite |
 | Training/Evaluation | Google Colab, pandas, matplotlib, Jupyter Notebook |
 
-## <a name="architecture"></a>System Architecture
+## <a name="architecture"></a> System Architecture
 
 ```mermaid
 flowchart TD
@@ -132,7 +171,7 @@ flowchart TD
     M --> N
 ```
 
-## <a name="recognition-pipeline"></a>Recognition Pipeline
+## <a name="recognition-pipeline"></a> Recognition Pipeline
 
 ```text
 Input frame
@@ -149,7 +188,11 @@ Input frame
 
 YOLO is used only for plate region detection. It does not read characters. Character recognition is handled by PaddleOCR and the final result is selected by custom post-processing in `nhan_dien_bien_so.py`.
 
-## <a name="quick-start"></a>Quick Start
+Post-processing ranks OCR candidates by structure validity, number of edits, frequency across image variants, and OCR confidence.
+
+![OCR post-processing flow](docs/images/ocr-postprocessing-flow.png)
+
+## <a name="quick-start"></a> Quick Start
 
 ### Requirements
 
@@ -191,7 +234,7 @@ On the UI:
 4. Add valid license plates to the whitelist.
 5. Operate in automatic or manual mode.
 
-## <a name="project-structure"></a>Project Structure
+## <a name="project-structure"></a> Project Structure
 
 ```text
 .
@@ -201,6 +244,8 @@ On the UI:
 ├── quan_ly_du_lieu.py                 # SQLite database manager
 ├── giao_tiep_arduino.py               # Serial communication with Arduino
 ├── requirements.txt                   # Python dependencies
+├── docs/
+│   └── images/                         # README visuals extracted from report/presentation
 ├── mo_hinh/
 │   └── bien_so_yolo.pt                # Runtime YOLOv8n model
 ├── phan_cung_arduino/
@@ -211,7 +256,7 @@ On the UI:
 └── danh_gia_module_nhan_dien_bien_so/ # 200-image evaluation notebook and results
 ```
 
-## <a name="hardware-setup"></a>Hardware Setup
+## <a name="hardware-setup"></a> Hardware Setup
 
 | Component | Role |
 |---|---|
@@ -240,7 +285,7 @@ Arduino sends sensor messages in this format:
 CAM_BIEN:xe_vao=1,xe_ra=0
 ```
 
-## <a name="database"></a>Database
+## <a name="database"></a> Database
 
 The runtime database is SQLite:
 
@@ -259,7 +304,7 @@ Main tables:
 
 Runtime `.db` files are ignored by Git.
 
-## <a name="training-evaluation"></a>Training & Evaluation Notes
+## <a name="training-evaluation"></a> Training & Evaluation Notes
 
 YOLOv8n was trained as a one-class object detector. Class `0` represents the license plate region.
 
@@ -285,7 +330,28 @@ Full recognition evaluation:
 danh_gia_module_nhan_dien_bien_so/
 ```
 
-## <a name="troubleshooting"></a>Troubleshooting
+## <a name="operation-test-results"></a> Operation Test Results
+
+| Test scenario | Expected result | Actual result |
+|---|---|---|
+| Valid vehicle enters | Recognize plate, open barrier, save vehicle inside parking lot | Passed |
+| Invalid vehicle enters | Do not open barrier | Passed |
+| Vehicle already inside tries to enter again | Reject duplicate entry | Passed |
+| Valid vehicle exits | Open barrier, remove from inside list, write history | Passed |
+| Recognition fails | Do not open barrier incorrectly | Passed |
+| Sensor does not detect vehicle | Do not auto-capture in automatic mode | Passed |
+
+## <a name="limitations--roadmap"></a> Limitations & Roadmap
+
+| Current limitation | Possible improvement |
+|---|---|
+| Prototype-scale parking model | Upgrade to industrial sensors, camera, lighting, and barrier mechanics |
+| LM393 and SG90 are classroom/prototype components | Replace with industrial detection sensors and barrier actuators |
+| Recognition depends on camera angle, lighting, and plate condition | Add controlled lighting and collect more difficult samples |
+| PaddleOCR was not fine-tuned specifically for Vietnamese plates | Fine-tune OCR or train a plate-specific character recognizer |
+| Desktop-only operation | Add web/mobile monitoring, fee calculation, and payment integration |
+
+## <a name="troubleshooting"></a> Troubleshooting
 
 | Problem | Suggested check |
 |---|---|
@@ -296,7 +362,7 @@ danh_gia_module_nhan_dien_bien_so/
 | Servo is unstable | Use an external 5V power supply for servos |
 | Plate not recognized | Improve lighting, camera angle, plate distance, or add more difficult samples |
 
-## <a name="author"></a>Author
+## <a name="author"></a> Author
 
 **Le Song Thao**<br>
 Engineering degree - Electronics and Telecommunications Engineering<br>
@@ -305,6 +371,6 @@ Graduation thesis score: **9.6/10**
 
 <a href="#readme"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:2563EB,100:0F766E&height=110&section=footer" alt="Footer banner" /></a>
 
-## <a name="license"></a>License
+## <a name="license"></a> License
 
-This project was built for academic research, learning, and graduation thesis demonstration. If reusing datasets or model weights, please check the license of each original data source.
+Source code in this repository is released under the [MIT License](LICENSE). If reusing datasets or model weights, please check the license of each original data source.

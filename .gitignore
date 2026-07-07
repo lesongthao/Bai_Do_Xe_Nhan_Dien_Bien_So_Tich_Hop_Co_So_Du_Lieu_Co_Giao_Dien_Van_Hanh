@@ -35,6 +35,13 @@ venv/
 ~$*.docx
 ~$*.doc
 ~$*
+*.pptx
+*.ppt
+*.docx
+*.doc
+*.pdf
+docs/pptx-extracted/
+docs/images/*contact-sheet*.jpg
 
 # Training datasets are large. Keep metadata/docs in Git, keep raw images local.
 dataset_train_yolov8n/train/
